@@ -68,8 +68,8 @@ public class MainActivity extends Activity {
         settings.setSupportZoom(false);
         // Use the device viewport directly. Overview/wide viewport scaling can make
         // touch scrolling unreliable in some Android WebView/OEM combinations.
-        settings.setLoadWithOverviewMode(false);
-        settings.setUseWideViewPort(false);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setTextZoom(100);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
@@ -90,8 +90,6 @@ public class MainActivity extends Activity {
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
         webView.requestFocus(View.FOCUS_DOWN);
-        // Explicitly leave touch events to WebView's own scrolling implementation.
-        webView.setOnTouchListener((view, event) -> false);
         webView.addJavascriptInterface(new NativeBridge(), "AfterglowNative");
 
         webView.setWebViewClient(new WebViewClient() {
