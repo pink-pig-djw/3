@@ -68,7 +68,7 @@ public class MainActivity extends Activity {
         settings.setSupportZoom(false);
         // Use the device viewport directly. Overview/wide viewport scaling can make
         // touch scrolling unreliable in some Android WebView/OEM combinations.
-        settings.setLoadWithOverviewMode(true);
+        settings.setLoadWithOverviewMode(false);
         settings.setUseWideViewPort(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setTextZoom(100);
@@ -81,6 +81,7 @@ public class MainActivity extends Activity {
         );
 
         webView.setBackgroundColor(Color.rgb(244, 241, 233));
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         webView.setVerticalScrollBarEnabled(true);
         webView.setHorizontalScrollBarEnabled(false);
