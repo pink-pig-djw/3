@@ -225,6 +225,36 @@ kbd.xb-y { background: #f2b52a; color: #2b1d0b; }
 #app.has-pad p.pad-only { display: block !important; }
 #app.pad .fp-start .kb-only { display: none; }
 #app.pad .fp-start .fp-go { display: none; }
+/* breath meter, dive mask, the bottle letter and the ocean log */
+.fp-air { position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: var(--r-pill); font-size: 12px; z-index: 2; }
+.fp-air i { display: block; width: 120px; height: 6px; border-radius: 99px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
+.fp-air b { display: block; height: 100%; width: 100%; background: var(--lagoon); border-radius: inherit; transition: background .3s; }
+.fp-air.low b { background: #ff7a5c; }
+.fp-air.low { animation: airPulse 0.9s ease-in-out infinite; }
+@keyframes airPulse { 50% { box-shadow: 0 0 0 3px rgba(255, 122, 92, 0.35); } }
+.fp-mask { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse 72% 66% at 50% 47%, transparent 64%, rgba(4, 8, 9, 0.6) 77%, #040709 88%); }
+.fp-mask::after { content: ""; position: absolute; left: 50%; bottom: -6%; width: 22%; height: 26%; transform: translateX(-50%); border-radius: 50% 50% 0 0; background: radial-gradient(ellipse at 50% 100%, #040709 55%, transparent 72%); }
+.log { position: fixed; z-index: 9; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(780px, calc(100vw - 32px)); max-height: min(82vh, 760px); overflow: auto; padding: 18px 20px; border-radius: var(--r-panel); background: var(--glass-strong); }
+.log[hidden] { display: none; }
+.log header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.log h2 { margin: 0; font-family: var(--font-cn); font-size: 20px; font-weight: 600; }
+.log header span { color: var(--lagoon); font-size: 13px; }
+.log header button { margin-left: auto; }
+.log h3 { margin: 16px 0 8px; font-size: 12px; letter-spacing: .12em; color: var(--ink-dim); font-weight: 600; }
+.log-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.log-grid li { padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--rim); }
+.log-grid li b { display: block; font-size: 14px; margin-bottom: 4px; color: var(--ink-dim); }
+.log-grid li span { font-size: 12.5px; line-height: 1.55; color: var(--ink-dim); }
+.log-grid li.got { background: rgba(127, 227, 214, 0.08); border-color: rgba(127, 227, 214, 0.3); }
+.log-grid li.got b { color: var(--ink); }
+.log-grid.items li b { color: var(--sun); }
+.log footer { display: flex; align-items: center; gap: 12px; margin-top: 16px; font-size: 12px; color: var(--ink-dim); flex-wrap: wrap; }
+.log footer button { margin-left: auto; }
+.letter { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: rgba(4, 8, 10, 0.45); }
+.letter[hidden] { display: none; }
+.letter .paper { max-width: 440px; padding: 28px 30px 22px; border-radius: 6px; background: linear-gradient(170deg, #f6ecd2, #ead9b4); color: #3b2d1c; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45); transform: rotate(-1deg); }
+.letter p { margin: 0 0 18px; font-family: var(--font-cn); font-size: 15.5px; line-height: 1.85; white-space: pre-line; }
+.letter button { border-radius: var(--r-pill); padding: 8px 18px; background: #3b2d1c; color: #f6ecd2; font-weight: 600; }
 /* eyelids for falling asleep and waking up */
 .fp-lids { --lid: 0; position: absolute; inset: 0; pointer-events: none; }
 .fp-lids::before, .fp-lids::after { content: ""; position: absolute; left: -10%; right: -10%; height: calc(var(--lid) * 62%); background: #030405; border-radius: 0 0 50% 50% / 0 0 40px 40px; box-shadow: 0 0 60px 40px #030405; opacity: min(1, calc(var(--lid) * 4)); }
@@ -291,6 +321,9 @@ kbd.xb-y { background: #f2b52a; color: #2b1d0b; }
         <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18.3 6.5a8 8 0 0 1 0 11"/></svg>
         <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
       </button>
+      <button class="icon-btn" id="btnLog" title="海洋图鉴（J）" aria-label="海洋图鉴">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2 2 0 0 1 6 4h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 21V5.5"/><path d="M9 9.5c1.5-1.6 4.5-1.6 6 0-1.5 1.6-4.5 1.6-6 0z"/><path d="M15 9.5l1.6-1.2v2.4z"/></svg>
+      </button>
       <button class="icon-btn" id="btnHide" title="隐藏界面（H）" aria-label="隐藏界面">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>
       </button>
@@ -353,7 +386,7 @@ kbd.xb-y { background: #f2b52a; color: #2b1d0b; }
     </div>
     <div class="field"><label id="lblSpin">环绕时自动缓转</label><button class="switch" id="swSpin" role="switch" aria-checked="true" aria-labelledby="lblSpin"></button></div>
     <p class="keys pad-only"><kbd class="xb">LB</kbd><kbd class="xb">RB</kbd> 相机　<kbd class="xb xb-y">Y</kbd> 时段　<kbd class="xb">↑</kbd> 下雨　<kbd class="xb">↓</kbd> 暂停　<kbd class="xb">←</kbd><kbd class="xb">→</kbd> 调时间　<kbd class="xb">LT</kbd><kbd class="xb">RT</kbd> 缩放　<kbd class="xb xb-a">A</kbd> 回到全景</p>
-    <p class="keys"><kbd>空格</kbd> 时间　<kbd>R</kbd> 下雨　<kbd>1</kbd>–<kbd>4</kbd> 相机　<kbd>N</kbd> 换人　<kbd>M</kbd> 声音　<kbd>H</kbd> 隐藏界面</p>
+    <p class="keys"><kbd>空格</kbd> 时间　<kbd>R</kbd> 下雨　<kbd>1</kbd>–<kbd>4</kbd> 相机　<kbd>N</kbd> 换人　<kbd>M</kbd> 声音　<kbd>J</kbd> 图鉴　<kbd>H</kbd> 隐藏界面</p>
   </div>
 
   <!-- first-person HUD -->
@@ -361,8 +394,10 @@ kbd.xb-y { background: #f2b52a; color: #2b1d0b; }
     <div class="fp-cross" aria-hidden="true"></div>
     <div class="fp-bar glass">
       <span id="fpStatus">沙滩</span>
+      <button class="fp-exit" id="fpLog" title="海洋图鉴（J）">图鉴</button>
       <button class="fp-exit" id="fpExit" title="回到环绕视角（1）">退出漫游</button>
     </div>
+    <div class="fp-air glass" id="fpAir" hidden><span>憋气</span><i><b id="fpAirBar"></b></i></div>
     <div class="fp-toast glass" id="fpToast" role="status" aria-live="polite" hidden></div>
     <div class="fp-prompt" id="fpPrompt" hidden><kbd>E</kbd><span id="fpPromptText"></span></div>
     <canvas class="fp-map" id="fpMap" width="168" height="168" aria-label="小地图"></canvas>
@@ -379,6 +414,7 @@ kbd.xb-y { background: #f2b52a; color: #2b1d0b; }
           <li><kbd class="xb">RT</kbd> 冲刺</li>
           <li><kbd class="xb xb-y">Y</kbd> 下一个时段</li>
           <li><kbd class="xb">LB</kbd><kbd class="xb">RB</kbd> 切换相机</li>
+          <li><kbd class="xb">按下右摇杆</kbd> 海洋图鉴</li>
         </ul>
         <ul class="fp-keys kb-only">
           <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</li>
@@ -389,6 +425,7 @@ kbd.xb-y { background: #f2b52a; color: #2b1d0b; }
           <li><kbd>E</kbd> 互动</li>
           <li><kbd>T</kbd> 下一个时段</li>
           <li><kbd>R</kbd> 下雨</li>
+          <li><kbd>J</kbd> 海洋图鉴</li>
           <li><kbd>Esc</kbd> 释放鼠标</li>
         </ul>
         <div class="fp-actions">
@@ -406,11 +443,21 @@ kbd.xb-y { background: #f2b52a; color: #2b1d0b; }
         <button data-k="Run" aria-pressed="false">跑</button>
       </div>
     </div>
+    <div class="fp-mask" id="fpMask" aria-hidden="true"></div>
     <div class="fp-lids" id="fpLids" aria-hidden="true"></div>
     <div class="fp-fade" id="fpFade"></div>
   </div>
 
   <div class="cam-fade" id="camFade" aria-hidden="true"></div>
+  <section class="log glass" id="oceanLog" hidden aria-label="海洋图鉴">
+    <header><h2>海洋图鉴</h2><span id="logProgress"></span><button class="icon-btn" id="logClose" aria-label="关闭">✕</button></header>
+    <h3>海洋生物</h3><ul class="log-grid" id="logSpecies"></ul>
+    <h3>水下地点</h3><ul class="log-grid" id="logPlaces"></ul>
+    <h3>收集品</h3><ul class="log-grid items" id="logItems"></ul>
+    <footer><span>靠近并看向海里的生物或地点就会记下来；进度保存在这台设备的浏览器里。</span><button class="fp-back" id="logReset">重新开始</button></footer>
+  </section>
+  <div class="letter" id="letter" hidden><div class="paper"><p id="letterText"></p><button id="letterClose">收好信</button></div></div>
+
   <div class="hint hud" id="hint">拖动旋转 · 滚轮或双指缩放 · 右键平移</div>
   <button class="icon-btn unhide glass" id="btnUnhide" title="显示界面（H）" aria-label="显示界面">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>
@@ -566,7 +613,7 @@ function submerge(mat) {
   const prev = mat.onBeforeCompile, prevSrc = prev ? prev.toString() : '';
   mat.onBeforeCompile = (sh, r) => {
     if (prev) prev.call(mat, sh, r);
-    sh.uniforms.uAmbientW = U.ambient;
+    sh.uniforms.uAmbientW = U.ambient; sh.uniforms.uUnderS = U.under;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWPosS;')
       .replace('#include <project_vertex>', `#include <project_vertex>
@@ -576,11 +623,14 @@ function submerge(mat) {
 #endif
   vWPosS = (modelMatrix * wps).xyz; }`);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWPosS; uniform vec3 uAmbientW;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWPosS; uniform vec3 uAmbientW; uniform float uUnderS;')
       .replace('#include <opaque_fragment>', `if (vWPosS.y < -0.01) {
+  // seen from above, light crosses the water column twice; a diver's eye is right next to the object,
+  // so then it is the sunlight's way down plus the short way to the eye (the fog adds the haze)
   float dW = -vWPosS.y;
-  vec3 Tw = exp(-dW * vec3(0.95, 0.23, 0.12));
-  outgoingLight = outgoingLight * Tw + vec3(0.02, 0.26, 0.42) * uAmbientW * 2.4 * (1.0 - Tw);
+  float path = mix(dW, dW * 0.6 + distance(cameraPosition, vWPosS), uUnderS);
+  vec3 Tw = exp(-path * mix(vec3(0.95, 0.23, 0.12), vec3(0.42, 0.09, 0.05), uUnderS));   // close to clear seawater when diving
+  outgoingLight = outgoingLight * Tw + vec3(0.02, 0.26, 0.42) * uAmbientW * 2.4 * (1.0 - Tw) * mix(1.0, 0.55, uUnderS);
 }
 #include <opaque_fragment>`);
   };
@@ -3483,10 +3533,10 @@ function buildSplash() {
   SPLASH.mesh.frustumCulled = false; SPLASH.mesh.renderOrder = 4;
   scene.add(SPLASH.mesh);
 }
-function emitSplash(x, y, z, n, { up = 2.5, spread = 1.2, grav = 9, life = 1.0, size = 1, dir = null } = {}) {
+function emitSplash(x, y, z, n, { up = 2.5, spread = 1.2, grav = 9, life = 1.0, size = 1, dir = null, jitter = 0.2 } = {}) {
   for (let k = 0; k < n; k++) {
     const i = SPLASH.i = (SPLASH.i + 1) % SPLASH.N, a = rand() * TAU, s = spread * (0.3 + rand() * 0.7);
-    SPLASH.pos.set([x + rr(-0.2, 0.2), y, z + rr(-0.2, 0.2)], i * 3);
+    SPLASH.pos.set([x + rr(-jitter, jitter), y, z + rr(-jitter, jitter)], i * 3);
     SPLASH.vel.set([Math.cos(a) * s + (dir ? dir.x : 0), up * (0.6 + rand() * 0.6), Math.sin(a) * s + (dir ? dir.z : 0)], i * 3);
     SPLASH.age[i] = 0; SPLASH.life[i] = life * (0.7 + rand() * 0.6); SPLASH.grav[i] = grav; SPLASH.size[i] = size * (0.6 + rand() * 0.8);
   }
@@ -3500,6 +3550,7 @@ function updateSplash(dt) {
     SPLASH.vel[i * 3] *= 0.99; SPLASH.vel[i * 3 + 2] *= 0.99;
     SPLASH.pos[i * 3] += SPLASH.vel[i * 3] * dt; SPLASH.pos[i * 3 + 1] += SPLASH.vel[i * 3 + 1] * dt; SPLASH.pos[i * 3 + 2] += SPLASH.vel[i * 3 + 2] * dt;
     if (SPLASH.pos[i * 3 + 1] < 0 && SPLASH.grav[i] > 3) SPLASH.age[i] = 99;      // droplets fall back into the sea
+    if (SPLASH.grav[i] < 0 && SPLASH.pos[i * 3 + 1] > -0.04) SPLASH.age[i] = 99;   // bubbles burst at the surface
     ages[i] = Math.min(1, SPLASH.age[i] / SPLASH.life[i]);
   }
   SPLASH.geo.attributes.position.needsUpdate = true; SPLASH.geo.attributes.aAge.needsUpdate = true; SPLASH.geo.attributes.aSize.needsUpdate = true;
@@ -3520,7 +3571,7 @@ class School {
     this.mesh.frustumCulled = false;
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(this.mesh);
-    Object.assign(this, { n, track, center, speed, radius, flat, depth, mill, scale, swirl, s: rand() * 100, c: new THREE.Vector3(), tan: new THREE.Vector3(0, 0, 1) });
+    Object.assign(this, { species, n, track, center, speed, radius, flat, depth, mill, scale, swirl, s: rand() * 100, c: new THREE.Vector3(), tan: new THREE.Vector3(0, 0, 1) });
     this.f = [];
     for (let i = 0; i < n; i++) {
       const a = rand() * TAU, r = radius * Math.cbrt(rand());
@@ -3545,6 +3596,10 @@ class School {
         tx = this.c.x + f.off.x * ca - f.off.z * sa + Math.sin(t * 0.9 + f.ph) * 0.3;
         tz = this.c.z + f.off.x * sa + f.off.z * ca + Math.cos(t * 0.8 + f.ph) * 0.3;
         ty = this.c.y + f.off.y + Math.sin(t * 0.6 + f.ph) * 0.1;
+      }
+      if (DIVER.on) {   // part around a swimmer instead of swimming through them
+        const dx = tx - DIVER.p.x, dy = ty - DIVER.p.y, dz = tz - DIVER.p.z, d2 = dx * dx + dy * dy + dz * dz, R0 = 2.2 + this.radius * 0.3;
+        if (d2 < R0 * R0) { const d = Math.sqrt(d2) + 1e-3, k = (R0 - d) / d * 1.3; tx += dx * k; ty += dy * k * 0.5; tz += dz * k; }
       }
       if (this.reset) { f.pos.set(tx, ty, tz); f.vel.copy(this.tan).multiplyScalar(this.speed); }
       // steer towards the slot, keep cruising along the school's heading
@@ -3946,6 +4001,685 @@ function updateMarine(dt, t) {
 
 
 // =====================================================================
+//  Ocean exploration: a shipwreck with a treasure chest, a sea arch, giant
+//  clams (one with a pearl), anemones for the clownfish, octopuses, moray
+//  eels, stingrays, seahorses, sea urchins, barracuda and groupers, shells
+//  to collect, a message in a bottle, light shafts, and an ocean log.
+// =====================================================================
+const OCEAN = { clams: [], octos: [], eels: [], rays: [], horses: [], urchins: [], anemones: [], shells: [], places: {}, wreck: null, arch: null, chest: null, bottle: null, rack: null, shafts: [], ink: null };
+const OLOG = { found: store.get('oceanFound', {}), got: store.get('oceanGot', {}) };
+const DIVER = { on: false, p: new THREE.Vector3() };     // fish keep their distance from a swimmer
+SPECIES.barracuda = { len: 1.15, depth: 0.2, thick: 0.62, top: '#5d7486', side: '#b8c4cc', belly: '#eef1f2', tail: '#8d9ba6', fork: true, fin: '#8d9ba6' };
+SPECIES.grouper = { len: 0.95, depth: 0.42, thick: 0.6, top: '#4a3b2c', side: '#7a6347', belly: '#b39f80', tail: '#5a4835', fin: '#5a4835', saddle: '#3c2f22' };
+
+const slopeAt = (x, z) => Math.hypot(hAt(x + 0.8, z) - hAt(x - 0.8, z), hAt(x, z + 0.8) - hAt(x, z - 0.8)) / 1.6;
+const OCEAN_SPOTS = [];
+// somewhere on the sea floor in a depth band, flat enough, away from other features
+function seabed(minH, maxH, rMin, rMax, { flat = 0.5, gap = 6, tries = 3000 } = {}) {
+  for (let k = 0; k < tries; k++) {
+    const p = waterSpot(minH, maxH, rMin, rMax, 1);
+    if (!p || slopeAt(p.x, p.z) > flat || Math.hypot(p.x - ISLET.x, p.z - ISLET.z) < 9) continue;
+    if (OCEAN_SPOTS.some((q) => Math.hypot(q.x - p.x, q.z - p.z) < gap)) continue;
+    OCEAN_SPOTS.push(p); p.y = hAt(p.x, p.z); return p;
+  }
+  return null;
+}
+const oceanMat = (o) => submerge(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, ...o }));
+function saveLog() { store.set('oceanFound', OLOG.found); store.set('oceanGot', OLOG.got); }
+
+// ---------------------------------------------------------------------
+//  The wreck of the Morning Star
+// ---------------------------------------------------------------------
+function buildWreck() {
+  const p = seabed(-7.8, -5.6, 42, R - 11, { flat: 0.35, gap: 14 }) || seabed(-8.5, -4.5, 36, R - 10, { flat: 0.6, gap: 10 });
+  if (!p) return;
+  const yaw = rand() * TAU, g = new THREE.Group();
+  const hull = hullGeo(9.5, 3.1, 1.8, { sheer: 0.35, transom: 0.8, top: '#5d4d3b', hull: '#54463a', bottom: '#3f3830', inside: '#4a3d30', floorAt: 0.45, waterline: 0.55 });
+  hull.computeBoundingBox(); hull.translate(0, -hull.boundingBox.min.y, 0);
+  // algae and coral growth discolour the planks
+  const col = hull.attributes.color, pos = hull.attributes.position, c = new THREE.Color(), algae = C('#5f6b3c'), crust = C('#a9967a');
+  for (let i = 0; i < col.count; i++) {
+    c.fromBufferAttribute(col, i);
+    const n = noise2(pos.getX(i) * 1.3, pos.getZ(i) * 1.3 + pos.getY(i));
+    c.lerp(algae, 0.25 + 0.3 * smooth(0, 1, n)).lerp(crust, 0.25 * smooth(0.4, 1, noise2(pos.getX(i) * 4, pos.getY(i) * 4)));
+    col.setXYZ(i, c.r, c.g, c.b);
+  }
+  const top = hull.boundingBox.max.y - hull.boundingBox.min.y;
+  const parts = [hull];
+  // half the deck is gone: planks only over the bow, ribs show at the broken stern
+  for (let k = 0; k < 9; k++) parts.push(part(woodBox(0.42, 0.07, 2.5 - Math.abs(k - 4) * 0.12, 1), k % 3 ? '#4b3e30' : '#3e3328', { p: [0.4 + k * 0.45, top - 0.12, rr(-0.1, 0.1)], r: [0, rr(-0.04, 0.04), rr(-0.05, 0.05)] }));
+  for (let k = 0; k < 5; k++) parts.push(part(new THREE.TorusGeometry(1.35 - k * 0.05, 0.08, 5, 10, Math.PI), '#3b3127', { p: [-4.1 + k * 0.55, top - 0.15, 0], r: [0, Math.PI / 2, Math.PI] }));
+  parts.push(part(new THREE.CylinderGeometry(0.16, 0.2, 2.0, 8), '#3a3026', { p: [0.6, top + 0.8, 0], r: [0.12, 0, 0.2] }));     // broken mast stump
+  parts.push(part(new THREE.BoxGeometry(0.9, 0.5, 0.1), '#4a3d30', { p: [-4.5, top - 0.3, 0], r: [0, Math.PI / 2, 0] }));
+  const wood = submerge(weather(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, map: woodTex, bumpMap: woodTex, bumpScale: 2.5 }), 0.5, 0.6));
+  const ship = new THREE.Mesh(merge(parts), wood);
+  ship.castShadow = ship.receiveShadow = true;
+  g.add(ship);
+  // corals and sea fans have settled on the hull
+  const grow = [];
+  for (let k = 0; k < 26; k++) {
+    const x = rr(-4.2, 4.4), side = rand() < 0.5 ? -1 : 1, onTop = rand() < 0.45;
+    const y = onTop ? top + 0.02 : rr(0.6, top - 0.2), z = onTop ? rr(-1.1, 1.1) : side * 1.45;
+    if (rand() < 0.3) grow.push(part(new THREE.CircleGeometry(rr(0.25, 0.5), 10, 0, Math.PI), pick(['#7d3f8c', '#a2486f', '#c46f4a']), { p: [x, y, z], r: [0, onTop ? rr(0, 3) : side * Math.PI / 2, 0] }));
+    else grow.push(part(new THREE.IcosahedronGeometry(rr(0.12, 0.3), 0), pick(['#c98a6a', '#9c7a9e', '#c7b46a', '#6fae9c', '#b46d88']), { p: [x, y, z], s: [1, 0.7, 1] }));
+  }
+  const growM = new THREE.Mesh(merge(grow), oceanMat({ side: THREE.DoubleSide, roughness: 0.75 }));
+  g.add(growM);
+  g.position.set(p.x, p.y - 0.55, p.z); g.rotation.set(0.05, yaw, 0.3, 'YXZ');
+  scene.add(g); g.updateMatrixWorld(true);
+  // keel-line collision so you swim around the hull, not through it
+  for (const [x, r] of [[-3.8, 1.3], [-2, 1.45], [0, 1.5], [2, 1.4], [3.8, 1.0]]) { const w = g.localToWorld(new THREE.Vector3(x, 0, 0)); cCircle(w.x, w.z, r, p.y - 2, p.y + top + 0.2); }
+  // debris on the sand: the main mast, cannons, barrels, an anchor and amphorae
+  const deb = [], at = (lx, lz) => { const w = g.localToWorld(new THREE.Vector3(lx, 0, lz)); w.y = hAt(w.x, w.z); return w; };
+  const mast = at(1.5, 3.4); deb.push(part(new THREE.CylinderGeometry(0.13, 0.17, 6.5, 8), '#3d3227', { p: [mast.x, mast.y + 0.1, mast.z], r: [Math.PI / 2, yaw + 0.5, 0] }));
+  for (const [lx, lz] of [[-1.5, -2.6], [1.2, -2.9]]) { const q = at(lx, lz); deb.push(part(new THREE.CylinderGeometry(0.13, 0.17, 1.4, 10), '#2e2a26', { p: [q.x, q.y + 0.12, q.z], r: [Math.PI / 2, yaw + rr(-0.6, 0.6), 0] })); deb.push(part(new THREE.TorusGeometry(0.17, 0.05, 5, 10), '#3a3029', { p: [q.x, q.y + 0.12, q.z], r: [0, yaw, 0] })); }
+  for (const [lx, lz] of [[-2.6, 2.4], [-3.2, 2.9], [3.6, -2.2]]) { const q = at(lx, lz), a = rr(0, 3); deb.push(part(new THREE.CylinderGeometry(0.28, 0.24, 0.75, 12), '#4a3a2a', { p: [q.x, q.y + 0.22, q.z], r: [rr(0.9, 1.6), a, 0] })); for (const s of [-0.22, 0.22]) deb.push(part(new THREE.TorusGeometry(0.28, 0.03, 4, 14), '#2c2723', { p: [q.x, q.y + 0.22, q.z], r: [rr(0.9, 1.6) + Math.PI / 2, a, 0] })); }
+  { const q = at(5.6, 1.2); deb.push(part(new THREE.CylinderGeometry(0.06, 0.06, 1.8, 8), '#2b2724', { p: [q.x, q.y + 0.75, q.z], r: [0.5, yaw, 0] })); deb.push(part(new THREE.TorusGeometry(0.55, 0.06, 6, 12, Math.PI), '#2b2724', { p: [q.x, q.y + 0.1, q.z], r: [0, yaw + Math.PI / 2, Math.PI] })); deb.push(part(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 6), '#2b2724', { p: [q.x, q.y + 1.5, q.z], r: [0, yaw, Math.PI / 2] })); }
+  const jar = new THREE.LatheGeometry([[0.01, 0], [0.09, 0.03], [0.17, 0.25], [0.15, 0.45], [0.06, 0.55], [0.05, 0.68], [0.08, 0.7]].map(([x, y]) => new THREE.Vector2(x, y)), 12);
+  for (let k = 0; k < 5; k++) { const q = at(rr(-5, 5), rr(-3.4, -2.2) * (k % 2 ? 1 : -1)); deb.push(part(jar.clone(), pick(['#a5603e', '#93583b', '#b07250']), { p: [q.x, q.y + 0.12, q.z], r: [rr(1.2, 1.5), rr(0, 6), 0] })); }
+  const debris = new THREE.Mesh(merge(deb), oceanMat({ roughness: 0.85 })); debris.castShadow = debris.receiveShadow = true; scene.add(debris);
+  cCircle(mast.x, mast.z, 0.3, mast.y - 1, mast.y + 0.4);
+  // the treasure chest, half buried by the broken stern
+  const cp = at(-5.6, -1.4), chest = new THREE.Group();
+  const body = new THREE.Mesh(merge([part(woodBox(0.78, 0.42, 0.5, 1.2), '#5a3f27', { p: [0, 0.21, 0] }), ...[-0.27, 0.27].map((x) => part(new THREE.BoxGeometry(0.06, 0.44, 0.52), '#8a7a4a', { p: [x, 0.21, 0] }))]), MAT.wood);
+  const lid = new THREE.Group(); lid.position.set(0, 0.42, -0.25);
+  lid.add(new THREE.Mesh(merge([part(new THREE.CylinderGeometry(0.25, 0.25, 0.78, 12, 1, false, 0, Math.PI), '#5a3f27', { p: [0, 0, 0.25], r: [0, 0, Math.PI / 2] }), ...[-0.27, 0.27].map((x) => part(new THREE.CylinderGeometry(0.265, 0.265, 0.06, 12, 1, false, 0, Math.PI), '#8a7a4a', { p: [x, 0, 0.25], r: [0, 0, Math.PI / 2] }))]), MAT.wood));
+  const goldMat = submerge(new THREE.MeshStandardMaterial({ color: '#e8b64a', metalness: 0.9, roughness: 0.28, emissive: '#ffcf6a', emissiveIntensity: 0 }));
+  const coins = [];
+  for (let k = 0; k < 22; k++) coins.push(xf(new THREE.CylinderGeometry(0.04, 0.04, 0.012, 10), { p: [rr(-0.3, 0.3), 0.36 + rr(0, 0.05), rr(-0.18, 0.18)], r: [rr(-0.4, 0.4), 0, rr(-0.4, 0.4)] }));
+  coins.push(xf(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 16), { p: [0.12, 0.42, 0.05] }));     // a brass compass
+  const gold = new THREE.Mesh(mergeGeometries(coins.map((x) => x.toNonIndexed())), goldMat);
+  chest.add(body, lid, gold);
+  chest.position.set(cp.x, cp.y - 0.12, cp.z); chest.rotation.set(0.08, yaw + 0.4, -0.06); scene.add(chest);
+  cCircle(cp.x, cp.z, 0.45, cp.y - 1, cp.y + 0.4);
+  OCEAN.chest = { g: chest, lid, goldMat, open: !!OLOG.got.chest };
+  if (OCEAN.chest.open) lid.rotation.x = -1.7;
+  addSpot({ kind: 'chest', pos: new THREE.Vector3(cp.x, cp.y + 0.4, cp.z), r: 1.7, label: () => '打开宝箱', when: () => !OCEAN.chest.open, use: openChest });
+  OCEAN.wreck = { g, x: p.x, z: p.z, y: p.y, top: p.y + top - 0.5 };
+  OCEAN.places.wreck = { x: p.x, z: p.z, y: p.y + 1.5, r: 9 };
+  // residents: a cruising barracuda school and two big groupers
+  SCHOOLS.push(new School({ species: 'barracuda', n: IS_TOUCH ? 8 : 14, center: { x: p.x, z: p.z }, radius: 3.6, flat: 0.25, depth: -(p.y + top + 1.8), mill: 0.1, speed: 0.6 }));
+  SCHOOLS.push(new School({ species: 'grouper', n: 2, center: { x: p.x + 2, z: p.z - 1.5 }, radius: 1.6, flat: 0.3, depth: -(p.y + 1.2), mill: 0.05, speed: 0.25, swirl: 0.15 }));
+}
+function openChest() {
+  const ch = OCEAN.chest;
+  startAct({
+    dur: 2.2, label: '打开宝箱',
+    hands(k) {
+      const r = seg(k, 0, 0.25) * (1 - seg(k, 0.85, 1));
+      hand('R', lerp(0.3, 0.16, r), lerp(-0.62, -0.22 + 0.12 * seg(k, 0.25, 0.6), r), -0.45, -0.7); hand('L', lerp(-0.3, -0.16, r), lerp(-0.62, -0.22 + 0.12 * seg(k, 0.25, 0.6), r), -0.45, -0.7);
+      ch.lid.rotation.x = -1.7 * seg(k, 0.25, 0.65);
+      ch.goldMat.emissiveIntensity = 0.6 * bump(k, 0.5, 1);
+    },
+    cues: [[0.3, () => audio.thud(0.5)], [0.6, () => { ch.open = true; OLOG.got.chest = true; saveLog(); fpToast('宝箱里是一小袋发黑的旧金币，和一个还能转动的黄铜罗盘。', 5); audio.discover(1); }]],
+  });
+}
+
+// ---------------------------------------------------------------------
+//  Sea arch on the fore-reef
+// ---------------------------------------------------------------------
+function buildArch() {
+  const p = seabed(-6.2, -4.4, 38, R - 12, { flat: 0.55, gap: 16 });
+  if (!p) return;
+  const yaw = rand() * TAU, span = 3.9, rise = Math.min(3.4, -1.4 - p.y - 0.8), parts = [], g = new THREE.Group();
+  for (let k = 0; k <= 15; k++) {
+    const a = Math.PI * k / 15, end = k === 0 || k === 15, s = rr(0.7, 0.92) * (end ? 1.4 : 1);
+    const x = Math.cos(a) * span, y = Math.sin(a) * rise + (end ? 0.25 : 0.45);
+    const rg = rockGeo(100 + k * 7, 1, 0.38); xf(rg, { p: [x, y, rr(-0.25, 0.25)], s: [s * 0.95, s * 0.9, s * 1.15], r: [rr(0, 1), rr(0, 3), rr(0, 1)] });
+    colorRock(rg, 0.35, k); parts.push(rg);
+    OCEAN_TMP.push([x, y, s]);
+    if (!end && k % 3 === 0) { const r2 = rockGeo(150 + k, 1, 0.4); xf(r2, { p: [x * 1.05, y + 0.2, rr(-0.6, 0.6)], s: s * 0.6 }); colorRock(r2, 0.4, k + 1); parts.push(r2); }
+  }
+  for (let k = 0; k < 4; k++) { const rg = rockGeo(300 + k, 1, 0.4); xf(rg, { p: [rr(-4, 4), 0.2, rr(-1.5, 1.5) + (k % 2 ? 2 : -2)], s: rr(0.5, 0.9) }); colorRock(rg, 0.3, k); parts.push(rg); }
+  const arch = new THREE.Mesh(merge(parts), rockMat); arch.castShadow = arch.receiveShadow = true;
+  // encrusting corals on top of the arch
+  const grow = [];
+  for (let k = 0; k < 30; k++) { const a = rr(0.15, Math.PI - 0.15); grow.push(part(new THREE.IcosahedronGeometry(rr(0.1, 0.24), 0), pick(['#d07a8a', '#c7b46a', '#6fae9c', '#e5a0b0', '#9c7a9e']), { p: [Math.cos(a) * span, Math.sin(a) * rise + 1.1, rr(-0.5, 0.5)], s: [1, 0.6, 1] })); }
+  g.add(arch, new THREE.Mesh(merge(grow), oceanMat({ roughness: 0.75 })));
+  g.position.set(p.x, p.y, p.z); g.rotation.y = yaw; scene.add(g); g.updateMatrixWorld(true);
+  for (const [x, y, s] of OCEAN_TMP) { const w = g.localToWorld(new THREE.Vector3(x, y, 0)); cCircle(w.x, w.z, s * 0.95, w.y - s, w.y + s * 0.9); }
+  OCEAN_TMP.length = 0;
+  OCEAN.arch = { x: p.x, z: p.z, y: p.y };
+  OCEAN.places.arch = { x: p.x, z: p.z, y: p.y + rise * 0.6, r: 9 };
+}
+const OCEAN_TMP = [];
+
+// ---------------------------------------------------------------------
+//  Giant clams: they close when you come too near; one keeps a pearl
+// ---------------------------------------------------------------------
+function clamValve(side) {
+  const g = new THREE.SphereGeometry(1, 30, 10, 0, TAU, 0, Math.PI / 2);   // dome, apex up
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const th = Math.atan2(z, x), rib = 1 + 0.1 * Math.abs(Math.sin(th * 3.5));   // radial ribs
+    x *= rib; z *= rib;
+    if (y < 0.05) y += 0.13 * Math.sin(th * 7) * (1 - y / 0.05);                  // scalloped lip
+    p.setXYZ(i, x, y, z);
+  }
+  g.computeVertexNormals();
+  // dome opens sideways: apex → ±x, then shift the umbo down towards the hinge
+  xf(g, { r: [0, 0, -side * Math.PI / 2] }); xf(g, { s: [0.2, 0.3, 0.5] });
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i); p.setY(i, p.getY(i) + 0.3 + Math.abs(x) * -0.4); }
+  g.computeVertexNormals();
+  const c = paint(g, '#ffffff'), col = c.attributes.color, pp = c.attributes.position, cc = new THREE.Color();
+  for (let i = 0; i < pp.count; i++) { const n = noise2(pp.getY(i) * 9, pp.getZ(i) * 9); cc.set('#d8d0c0').lerp(C('#9a9180'), 0.35 * n).lerp(C('#7a8a5a'), 0.2 * smooth(0.3, 0, pp.getY(i))); col.setXYZ(i, cc.r, cc.g, cc.b); }
+  return c;
+}
+function buildClams() {
+  const vL = clamValve(-1), vR = clamValve(1), shellM = oceanMat({ roughness: 0.6, side: THREE.DoubleSide });
+  const mantleG = paint(xf(new THREE.SphereGeometry(1, 20, 10), { s: [0.07, 0.07, 0.4], p: [0, 0.52, 0] }), '#ffffff');
+  { const col = mantleG.attributes.color, pp = mantleG.attributes.position, cc = new THREE.Color(); for (let i = 0; i < pp.count; i++) { const n = noise2(pp.getZ(i) * 30, pp.getX(i) * 30); cc.set('#1d6f9c').lerp(C('#3fb6a8'), smooth(0.3, 0.7, n)).lerp(C('#6b3f8f'), smooth(0.75, 0.9, noise2(pp.getZ(i) * 12 + 5, 0))); if (n > 0.82) cc.set('#bff3ff'); col.setXYZ(i, cc.r, cc.g, cc.b); } }
+  const mantleM = oceanMat({ roughness: 0.3, emissive: '#1a6f8f', emissiveIntensity: 0.25 });
+  const pearlM = new THREE.MeshStandardMaterial({ color: '#f6f1e8', roughness: 0.12, metalness: 0.3, emissive: '#fff6e6', emissiveIntensity: 0.15 });
+  for (let k = 0; k < 5; k++) {
+    const p = seabed(-3.2, -1.1, 18, 50, { flat: 0.5, gap: 4 });
+    if (!p) continue;
+    const g = new THREE.Group(), s = rr(1.1, 1.7);
+    const L = new THREE.Group(), Rv = new THREE.Group();
+    L.add(new THREE.Mesh(vL, shellM)); Rv.add(new THREE.Mesh(vR, shellM));
+    const mantle = new THREE.Mesh(mantleG, mantleM);
+    g.add(L, Rv, mantle);
+    let pearl = null;
+    if (k === 0 && !OLOG.got.pearl) { pearl = new THREE.Mesh(new THREE.SphereGeometry(0.035, 14, 10), pearlM); pearl.position.set(0, 0.6, 0.05); g.add(pearl); }
+    g.position.set(p.x, p.y - 0.05, p.z); g.rotation.y = rand() * TAU; g.scale.setScalar(s); scene.add(g);
+    cCircle(p.x, p.z, 0.4 * s, p.y - 1, p.y + 0.62 * s);
+    const clam = { g, L, R: Rv, mantle, pearl, open: 1, shut: 0, p, s };
+    OCEAN.clams.push(clam);
+    if (pearl) addSpot({ kind: 'pearl', pos: new THREE.Vector3(p.x, p.y + 0.6 * s, p.z), r: 1.8, label: () => (clam.open > 0.6 ? '取出珍珠' : '砗磲合上了，退开一点等它张开'), when: () => !!clam.pearl, use: () => { if (clam.open > 0.6) pickUp(clam.pearl, () => { clam.pearl = null; OLOG.got.pearl = true; saveLog(); fpToast('一颗圆润的珍珠，在水下泛着淡淡的光。', 4); audio.discover(1); }); else fpToast('砗磲察觉到你靠近，紧紧合上了壳。', 3); } });
+  }
+  if (OCEAN.clams.length) OCEAN.places.clams = { x: OCEAN.clams[0].p.x, z: OCEAN.clams[0].p.z, y: OCEAN.clams[0].p.y, r: 5 };
+}
+
+// ---------------------------------------------------------------------
+//  Anemones under every clownfish pair (tentacles sway in the surge)
+// ---------------------------------------------------------------------
+function swayMat(color) {
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, ...color });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = U.time;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uTime;').replace('#include <begin_vertex>', `#include <begin_vertex>
+  { float h = clamp(position.y / 0.3, 0.0, 1.0); vec4 wp = modelMatrix * vec4(position, 1.0);
+    transformed.x += sin(uTime * 1.4 + wp.x * 2.0 + position.z * 9.0) * 0.05 * h * h;
+    transformed.z += cos(uTime * 1.1 + wp.z * 2.0 + position.x * 9.0) * 0.05 * h * h; }`);
+  };
+  m.customProgramCacheKey = () => 'sway';
+  return submerge(m);
+}
+function buildAnemones() {
+  const parts = [part(new THREE.CylinderGeometry(0.17, 0.22, 0.12, 12), '#8a4f63', { p: [0, 0.05, 0] })];
+  for (let k = 0; k < 70; k++) {
+    const a = rand() * TAU, r = Math.sqrt(rand()) * 0.2, len = rr(0.14, 0.24);
+    const tg = new THREE.CapsuleGeometry(0.016, len, 2, 5), tilt = 0.2 + r * 1.6;
+    const t = paint(xf(tg, { p: [Math.cos(a) * (r + Math.sin(tilt) * len / 2), 0.11 + Math.cos(tilt) * len / 2, Math.sin(a) * (r + Math.sin(tilt) * len / 2)], r: [0, -a, 0] }), '#ffffff');
+    const col = t.attributes.color, pp = t.attributes.position;
+    for (let i = 0; i < pp.count; i++) { const h = clamp((pp.getY(i) - 0.1) / 0.25, 0, 1); const cc = C('#b36f9a').lerp(C('#f3c3dc'), h); col.setXYZ(i, cc.r, cc.g, cc.b); }
+    parts.push(t);
+  }
+  const geo = merge(parts), mat = swayMat({ emissive: '#5a2040', emissiveIntensity: 0.12 });
+  for (const sc of SCHOOLS) {
+    if (sc.species !== 'clown') continue;
+    const x = sc.center.x, z = sc.center.z, y = hAt(x, z);
+    const m = new THREE.Mesh(geo, mat); m.position.set(x, y - 0.02, z); m.scale.setScalar(rr(1.2, 1.7)); m.rotation.y = rand() * TAU; scene.add(m);
+    OCEAN.anemones.push({ m, x, y, z });
+    sc.depth = -(y + 0.45); sc.radius = 0.3;     // the clownfish stay right above their anemone
+  }
+}
+
+// ---------------------------------------------------------------------
+//  Octopus: camouflaged on the reef, jets away in a cloud of ink if you get close
+// ---------------------------------------------------------------------
+function buildOctopus(dens) {
+  const mat = submerge(new THREE.MeshStandardMaterial({ color: '#8f7a5c', roughness: 0.62 }));
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const mantle = new THREE.Mesh(xf(new THREE.SphereGeometry(1, 16, 12), { s: [0.15, 0.2, 0.17], p: [0, 0.2, -0.07], r: [-0.5, 0, 0] }), mat);
+  const head = new THREE.Mesh(xf(new THREE.SphereGeometry(1, 14, 10), { s: [0.12, 0.09, 0.11], p: [0, 0.08, 0.03] }), mat);
+  const eyeM = new THREE.MeshStandardMaterial({ color: '#e8dfc8', roughness: 0.3 });
+  for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 6), eyeM); e.position.set(s * 0.085, 0.13, 0.06); body.add(e); const pu = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.008, 0.01), new THREE.MeshBasicMaterial({ color: '#111' })); pu.position.set(s * 0.1, 0.13, 0.075); pu.rotation.y = s * 0.6; body.add(pu); }
+  body.add(mantle, head);
+  const arms = [];
+  for (let a = 0; a < 8; a++) {
+    const ang = (a + 0.5) / 8 * TAU, root = new THREE.Group();
+    root.position.set(Math.cos(ang) * 0.07, 0.05, Math.sin(ang) * 0.07); root.rotation.y = -ang + Math.PI / 2;
+    body.add(root);
+    let parent = root; const segs = [];
+    for (let i = 0; i < 5; i++) {
+      const len = 0.085 - i * 0.008, r0 = 0.03 - i * 0.005, r1 = r0 - 0.005;
+      const jg = new THREE.Group(); jg.position.z = i ? 0.085 - (i - 1) * 0.008 : 0;
+      const m = new THREE.Mesh(xf(new THREE.CylinderGeometry(r1, r0, len, 6), { r: [Math.PI / 2, 0, 0], p: [0, 0, len / 2] }), mat);
+      jg.add(m); parent.add(jg); parent = jg; segs.push(jg);
+    }
+    arms.push({ root, segs, ph: rand() * TAU });
+  }
+  const d0 = dens[0];
+  g.position.set(d0.x, d0.y, d0.z); scene.add(g);
+  OCEAN.octos.push({ g, body, arms, mat, dens, den: 0, state: 'rest', t: 0, from: new THREE.Vector3(), to: new THREE.Vector3(), alarm: 0, yaw: rand() * TAU });
+}
+function buildOctopi() {
+  for (let k = 0; k < 2; k++) {
+    const dens = [];
+    const first = seabed(-3.4, -1.0, 20, 48, { flat: 0.9, gap: 8 });
+    if (!first) continue;
+    dens.push(first);
+    for (let j = 0; j < 3; j++) { for (let tries = 0; tries < 200; tries++) { const a = rand() * TAU, r = rr(3, 6), x = first.x + Math.cos(a) * r, z = first.z + Math.sin(a) * r, h = hAt(x, z); if (h < -0.9 && h > -4.5) { dens.push({ x, z, y: h }); break; } } }
+    buildOctopus(dens);
+  }
+  // a pool of ink puffs
+  const N = 160, g = new THREE.BufferGeometry();
+  OCEAN.ink = { N, i: 0, pos: new Float32Array(N * 3), vel: new Float32Array(N * 3), age: new Float32Array(N).fill(99), g };
+  g.setAttribute('position', new THREE.BufferAttribute(OCEAN.ink.pos, 3));
+  g.setAttribute('aAge', new THREE.BufferAttribute(new Float32Array(N).fill(1), 1));
+  const m = new THREE.Points(g, new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    vertexShader: 'attribute float aAge; varying float vA; void main(){ vA = (1.0 - aAge); vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = (40.0 + aAge * 260.0) / -mv.z; }',
+    fragmentShader: 'varying float vA; void main(){ float d = length(gl_PointCoord - 0.5); float a = smoothstep(0.5, 0.0, d) * vA * 0.55; if (a < 0.01) discard; gl_FragColor = vec4(0.03, 0.025, 0.04, a); }',
+  }));
+  m.frustumCulled = false; m.renderOrder = 5; scene.add(m);
+}
+function emitInk(p, n) {
+  const I = OCEAN.ink;
+  for (let k = 0; k < n; k++) { const i = I.i = (I.i + 1) % I.N; I.pos.set([p.x + rr(-0.1, 0.1), p.y + rr(-0.05, 0.15), p.z + rr(-0.1, 0.1)], i * 3); I.vel.set([rr(-0.25, 0.25), rr(-0.05, 0.25), rr(-0.25, 0.25)], i * 3); I.age[i] = 0; }
+}
+
+// ---------------------------------------------------------------------
+//  Moray eels in the rocks
+// ---------------------------------------------------------------------
+function buildEels() {
+  for (let k = 0; k < 2; k++) {
+    const p = seabed(-4.2, -1.3, 22, 52, { flat: 0.9, gap: 7 });
+    if (!p) continue;
+    const yaw = rand() * TAU, g = new THREE.Group(), rocks = [];
+    for (let j = 0; j < 4; j++) { const rg = rockGeo(500 + k * 10 + j, 1, 0.35); xf(rg, { p: [[-0.55, 0.55, 0, 0][j], [0.35, 0.35, 0.95, 0.3][j], [0, 0, 0.05, -0.6][j]], s: [0.7, 0.62, 0.8, 0.6][j] }); colorRock(rg, 0.4, j); rocks.push(rg); }
+    g.add(new THREE.Mesh(merge(rocks), rockMat));
+    const len = 1.15;
+    const eelG = spindle({
+      len, sx: 0.85, sy: 1.0, segs: 18, rad: 8,
+      prof: (u) => 0.055 * (u > 0.88 ? lerp(1, 0.55, (u - 0.88) / 0.12) : u < 0.25 ? lerp(0.35, 1, u / 0.25) : 1),
+      color: (u, ca, sa, c) => { c.set('#6e7a34').lerp(C('#3c4520'), smooth(0.45, 0.9, noise2(u * 26, ca * 3 + sa * 2))); if (sa < -0.4) c.lerp(C('#9aa25a'), 0.4); if (u > 0.9 && u < 0.94 && sa > 0.1 && Math.abs(ca) > 0.6) c.set('#e9e0a0'); },
+    });
+    const eelM = swimMat({ amp: 0.06, freq: 2.2, rough: 0.35 });
+    const eel = new THREE.Mesh(eelG, eelM);
+    const jaw = new THREE.Mesh(paint(xf(new THREE.BoxGeometry(0.06, 0.018, 0.1), { p: [0, -0.02, -0.05] }), '#5c6a2a'), submerge(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4 })));
+    const jawPivot = new THREE.Group(); jawPivot.position.set(0, -0.015, len / 2 - 0.01); jawPivot.add(jaw);
+    const holder = new THREE.Group(); holder.add(eel, jawPivot); g.add(holder);
+    holder.position.set(0, 0.3, 0);
+    g.position.set(p.x, p.y, p.z); g.rotation.y = yaw; scene.add(g);
+    cCircle(p.x, p.z, 0.9, p.y - 1, p.y + 1.1);
+    OCEAN.eels.push({ g, holder, jawPivot, len, out: 0.5, hide: 0, ph: rand() * 10, p });
+  }
+}
+
+// ---------------------------------------------------------------------
+//  Stingrays gliding over the sand
+// ---------------------------------------------------------------------
+function rayGeo() {
+  const pos = [], col = [], body = [], idx = [], NR = 8, NA = 28, c = new THREE.Color();
+  for (let i = 0; i <= NR; i++) for (let j = 0; j <= NA; j++) {
+    const r = i / NR, a = (j / NA) * TAU, ca = Math.cos(a), sa = Math.sin(a);
+    const rim = 1 - 0.18 * Math.cos(2 * a) + 0.12 * Math.max(0, sa);   // wider than long, rounded snout
+    const x = ca * r * 0.42 * rim, z = sa * r * 0.36 * rim, y = 0.07 * (1 - r * r) + (r > 0.9 ? -0.01 : 0);
+    pos.push(x, y, z); body.push(Math.abs(x) / 0.42);
+    c.set('#8a7a62').lerp(C('#6a5c48'), smooth(0.55, 0.8, noise2(x * 18, z * 18))); if (noise2(x * 40 + 3, z * 40) > 0.78) c.set('#c9b98f'); col.push(c.r, c.g, c.b);
+  }
+  for (let i = 0; i < NR; i++) for (let j = 0; j < NA; j++) { const a = i * (NA + 1) + j, b = a + NA + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
+  let g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setAttribute('aBody', new THREE.Float32BufferAttribute(body, 1));
+  g.setIndex(idx); g.computeVertexNormals(); g = g.toNonIndexed(); g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+  const tail = paint(xf(new THREE.ConeGeometry(0.018, 0.75, 6), { r: [-Math.PI / 2, 0, 0], p: [0, 0.03, -0.62] }), '#6a5c48');
+  const eyes = [-1, 1].map((s) => paint(xf(new THREE.SphereGeometry(0.02, 6, 5), { p: [s * 0.05, 0.075, 0.18] }), '#3a3226'));
+  return merge([g, tail, ...eyes], ['aBody']);
+}
+function buildRays() {
+  const geo = rayGeo(), mat = swimMat({ amp: 0.06, freq: 2.4, vert: 1, rough: 0.6 });
+  for (let k = 0; k < 4; k++) {
+    const p = seabed(-2.6, -0.8, 20, 46, { flat: 0.4, gap: 6 });
+    if (!p) continue;
+    const track = waterLoop(p.x, p.z, rr(4, 7), -3, -0.7, 12);
+    const m = new THREE.Mesh(geo, mat); m.scale.setScalar(rr(1.2, 1.7)); m.castShadow = true; scene.add(m);
+    OCEAN.rays.push({ m, track, s: rand() * 30, speed: 0.4, rest: rr(4, 12), resting: 0, flee: 0, pos: new THREE.Vector3(), tan: new THREE.Vector3(), y: p.y + 0.15 });
+  }
+}
+
+// ---------------------------------------------------------------------
+//  Seahorses in the seagrass, sea urchins on the reef
+// ---------------------------------------------------------------------
+function seahorseGeo(color) {
+  const pts = [[0, 0.17, 0.0], [0.0, 0.15, 0.02], [0, 0.12, 0.025], [0, 0.08, 0.02], [0, 0.04, 0.005], [0, 0.0, -0.01], [0, -0.03, -0.005], [0, -0.05, 0.015], [0, -0.045, 0.035], [0, -0.025, 0.04]];
+  const radii = [0.02, 0.022, 0.024, 0.022, 0.018, 0.013, 0.01, 0.008, 0.006, 0.005];
+  const curve = new THREE.CatmullRomCurve3(pts.map(([x, y, z]) => new THREE.Vector3(x, y, z)));
+  const parts = [];
+  for (let i = 0; i <= 28; i++) { const u = i / 28, q = curve.getPoint(u), r = lerp(radii[0], radii[9], Math.pow(u, 0.9)) * (1 + 0.12 * Math.sin(u * 60)); parts.push(part(new THREE.SphereGeometry(r, 8, 6), color, { p: [q.x, q.y, q.z] })); }
+  parts.push(part(new THREE.CylinderGeometry(0.006, 0.009, 0.05, 6), color, { p: [0, 0.165, 0.035], r: [Math.PI / 2 - 0.3, 0, 0] }));   // snout
+  parts.push(part(new THREE.ConeGeometry(0.01, 0.025, 5), color, { p: [0, 0.195, -0.005] }));                                           // coronet
+  parts.push(part(new THREE.CircleGeometry(0.018, 6), '#f2dfa8', { p: [0, 0.07, -0.022], r: [0, Math.PI / 2, 0] }));                      // dorsal fin
+  return merge(parts);
+}
+function buildSeahorses() {
+  const mat = oceanMat({ roughness: 0.5, side: THREE.DoubleSide });
+  for (let k = 0; k < 5; k++) {
+    const p = seabed(-1.8, -0.7, 18, 44, { flat: 0.6, gap: 3 });
+    if (!p) continue;
+    const m = new THREE.Mesh(seahorseGeo(pick(['#e8b23a', '#d9822f', '#c95a3a', '#e3c25a'])), mat);
+    m.scale.setScalar(2.0); m.position.set(p.x, p.y + 0.3, p.z); m.rotation.y = Math.atan2(p.x, p.z) + Math.PI / 2; scene.add(m);   // side-on to someone swimming out from the beach
+    OCEAN.horses.push({ m, p, ph: rand() * 10 });
+  }
+}
+function buildUrchins() {
+  const parts = [part(new THREE.IcosahedronGeometry(0.06, 1), '#2a1b2e', { s: [1, 0.75, 1] })];
+  for (let k = 0; k < 36; k++) {
+    const v = new THREE.Vector3(rr(-1, 1), rr(0, 1), rr(-1, 1)).normalize(), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), v);
+    const cg = new THREE.ConeGeometry(0.006, rr(0.1, 0.16), 4); cg.translate(0, 0.07, 0); cg.applyQuaternion(q);
+    parts.push(paint(cg, '#1d1222'));
+  }
+  const list = scatter(IS_TOUCH ? 24 : 44, (x, z) => { const h = hAt(x, z); if (h > -0.9 || h < -5) return null; if (noise2(x * 0.16 + 40, z * 0.16 - 12) < 0.45 && slopeAt(x, z) < 0.5) return null; return { x, z, y: h, s: rr(0.8, 1.3) }; }, 20000);
+  instanced(merge(parts), oceanMat({ roughness: 0.45 }), list, (c, m, col) => { m.compose(_v1.set(c.x, c.y, c.z), _q.setFromEuler(_eu.set(0, rand() * TAU, 0)), _s3.setScalar(c.s)); col.setRGB(1, 1, 1); });
+  OCEAN.urchins = list;
+}
+
+// ---------------------------------------------------------------------
+//  Shells to collect, and a message in a bottle
+// ---------------------------------------------------------------------
+const SHELL_TYPES = [
+  { name: '凤尾螺', make: () => { const pts = []; for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push(new THREE.Vector2(0.01 + 0.07 * Math.sin(Math.PI * Math.pow(t, 0.7)) * (1 + 0.15 * Math.sin(t * 40)), t * 0.2)); } return merge([part(new THREE.LatheGeometry(pts, 12), '#f0b48c', { r: [Math.PI / 2, 0, 0.3] }), part(xf(new THREE.SphereGeometry(0.07, 10, 6, 0, Math.PI), { s: [1, 0.5, 1.4] }), '#f7c9b3', { p: [0.03, 0.0, 0.1], r: [0, 0.3, Math.PI / 2] })]); } },
+  { name: '宝贝', make: () => part(new THREE.SphereGeometry(1, 14, 10), '#8a5a32', { s: [0.045, 0.03, 0.07], p: [0, 0.02, 0] }), glossy: true },
+  { name: '扇贝', make: () => { const g = new THREE.CircleGeometry(0.08, 14, Math.PI * 0.15, Math.PI * 0.7); const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const a = Math.atan2(p.getY(i), p.getX(i)), r = Math.hypot(p.getX(i), p.getY(i)); p.setZ(i, 0.008 * Math.sin(a * 22) * r / 0.08 + 0.02 * r / 0.08); } g.computeVertexNormals(); return part(g, '#e9805a', { r: [-Math.PI / 2, 0, 0], p: [0, 0.02, -0.03] }); } },
+  { name: '蝾螺', make: () => merge([0, 1, 2, 3].map((i) => part(new THREE.SphereGeometry(0.05 - i * 0.011, 10, 6), '#b9a27e', { p: [0, 0.025 + i * 0.03, 0], s: [1, 0.75, 1] }))) },
+];
+function buildShells() {
+  const got = OLOG.got.shells || (OLOG.got.shells = []);
+  const glossy = submerge(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.15, metalness: 0.05, emissive: '#ffffff', emissiveIntensity: 0, side: THREE.DoubleSide }));
+  const matte = submerge(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, emissive: '#ffffff', emissiveIntensity: 0, side: THREE.DoubleSide }));
+  const bands = [[-1.6, -0.6, 16, 40], [-3.5, -1.2, 20, 50], [-6.5, -3.0, 34, 60], [-8.5, -5.5, 44, R - 8]];
+  for (let k = 0; k < 14; k++) {
+    const b = bands[k % 4], p = seabed(b[0], b[1], b[2], b[3], { flat: 0.6, gap: 4 });
+    if (!p) continue;
+    const id = 'shell' + k;
+    if (got.includes(id)) continue;
+    const type = SHELL_TYPES[k % SHELL_TYPES.length];
+    const m = new THREE.Mesh(type.make(), type.glossy ? glossy : matte); m.scale.setScalar(1.6);
+    m.position.set(p.x, p.y + 0.01, p.z); m.rotation.y = rand() * TAU; scene.add(m);
+    const sh = { id, m, name: type.name, p };
+    OCEAN.shells.push(sh);
+    addSpot({ kind: 'shell', pos: new THREE.Vector3(p.x, p.y + 0.3, p.z), r: 1.5, label: () => `捡起贝壳 · ${sh.name}`, when: () => !sh.taken, use: () => pickUp(m, () => { sh.taken = true; got.push(id); saveLog(); fpToast(`捡到了一枚${sh.name}（贝壳 ${got.length} / 14）`, 3.5); audio.discover(0); }) });
+  }
+}
+const BOTTLE_NOTE = '致捡到这个瓶子的人：\n\n今天我在码头边坐了一整个下午。傍晚的时候，海豚从外海一路跳过去，灯塔一盏盏亮起来，风里有椰子和咸咸的海水味。\n\n如果你也在这座小岛上，希望你也能慢慢地看一次日落。\n\n—— 一个路过的旅人';
+function buildBottle() {
+  const p = seabed(-2.4, -1.2, 20, 50, { flat: 0.5, gap: 4 });
+  if (!p || OLOG.got.bottle) return;
+  const g = new THREE.Group();
+  const glass = new THREE.Mesh(new THREE.LatheGeometry([[0.001, 0], [0.05, 0.005], [0.055, 0.02], [0.055, 0.15], [0.025, 0.2], [0.018, 0.25], [0.02, 0.27]].map(([x, y]) => new THREE.Vector2(x, y)), 14), new THREE.MeshStandardMaterial({ color: '#5f9f7a', roughness: 0.08, metalness: 0.05, transparent: true, opacity: 0.55 }));
+  const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.016, 0.04, 8), new THREE.MeshStandardMaterial({ color: '#b08a5a', roughness: 0.9 })); cork.position.y = 0.28;
+  const paper = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 10), new THREE.MeshStandardMaterial({ color: '#efe3c4', roughness: 0.9 })); paper.position.y = 0.09;
+  g.add(glass, cork, paper); g.position.set(p.x, p.y + 0.05, p.z); g.rotation.set(Math.PI / 2 - 0.15, rand() * TAU, 0, 'YXZ'); scene.add(g);
+  OCEAN.bottle = { g, p };
+  addSpot({ kind: 'bottle', pos: new THREE.Vector3(p.x, p.y + 0.3, p.z), r: 1.5, label: () => '捡起漂流瓶', when: () => !OCEAN.bottle.taken, use: () => pickUp(g, () => { OCEAN.bottle.taken = true; OLOG.got.bottle = true; saveLog(); showLetter(BOTTLE_NOTE); }) });
+}
+function showLetter(text) {
+  const el = $('#letter'); $('#letterText').textContent = text; el.hidden = false; FP.reading = true;
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function closeLetter() { $('#letter').hidden = true; FP.reading = false; }
+
+// reach out, take the thing, look at it, put it away
+function pickUp(obj, done) {
+  const wp = new THREE.Vector3(), lp = new THREE.Vector3();
+  let held = false;
+  startAct({
+    dur: 1.8, label: '捡起来',
+    hands(k) {
+      obj.getWorldPosition(wp); camera.updateMatrixWorld(); lp.copy(wp); camera.worldToLocal(lp);
+      if (!held) lp.setLength(Math.min(lp.length(), 0.6)); else lp.set(0.12, -0.2, -0.42);
+      const reach = seg(k, 0, 0.35), show = seg(k, 0.4, 0.6), away = seg(k, 0.82, 1);
+      const x = lerp(lerp(0.3, lp.x, reach), 0.1, show), y = lerp(lerp(-0.62, lp.y, reach), -0.18, show), z = lerp(lerp(-0.3, lp.z, reach), -0.4, show);
+      if (k < 0.97) hand('R', x, y - away * 0.4, z, -0.4 + 0.5 * show);
+      if (held) obj.visible = k < 0.9;
+    },
+    cues: [[0.36, () => { held = true; ARMS.R.hand.attach(obj); obj.position.set(0, 0.03, -0.11); obj.rotation.set(0.4, 0.3, 0); obj.scale.multiplyScalar(0.7); audio.splash(0.12); }], [0.95, () => { obj.visible = false; done(); }]],
+  });
+}
+
+// ---------------------------------------------------------------------
+//  Scuba rack on the dock
+// ---------------------------------------------------------------------
+function buildDiveRack(A) {
+  if (!A || !A.dock) return;
+  const q = A.dock.P(5.6, -0.72), yaw = Math.atan2(A.dock.n.x, A.dock.n.z), parts = [];
+  const F = new THREE.Matrix4().compose(new THREE.Vector3(q.x, DECK_Y, q.z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0)), new THREE.Vector3(1, 1, 1));
+  for (const x of [-0.45, 0.45]) parts.push(part(woodBox(0.07, 1.2, 0.07), '#6b4a2f', { p: [x, 0.6, 0] }));
+  parts.push(part(woodBox(1.0, 0.06, 0.3), '#7a5434', { p: [0, 0.5, 0] }), part(woodBox(1.0, 0.06, 0.08), '#7a5434', { p: [0, 1.1, -0.05] }));
+  for (const x of [-0.22, 0.2]) { parts.push(part(new THREE.CylinderGeometry(0.09, 0.09, 0.62, 12), '#f2c230', { p: [x, 0.84, 0.02] })); parts.push(part(new THREE.CylinderGeometry(0.03, 0.03, 0.08, 8), '#2b2b2b', { p: [x, 1.18, 0.02] })); }
+  for (const x of [-0.25, 0.1]) parts.push(part(xf(new THREE.BoxGeometry(0.17, 0.02, 0.42), { r: [0, 0, 0] }), '#22608c', { p: [x, 0.07, 0.25], r: [0, 0.2, 0] }));
+  parts.push(part(xf(new THREE.TorusGeometry(0.07, 0.025, 6, 12), { s: [1.3, 1, 1] }), '#1d1d1d', { p: [0.36, 0.55, 0.06], r: [-1.3, 0, 0] }));
+  const geo = merge(parts); geo.applyMatrix4(F);
+  const m = new THREE.Mesh(geo, MAT.plain); m.castShadow = true; m.receiveShadow = true; scene.add(m);
+  const w = new THREE.Vector3(0, 0, 0).applyMatrix4(F);
+  cCircle(w.x, w.z, 0.45, DECK_Y - 0.1, DECK_Y + 1.3);
+  addSpot({ kind: 'scuba', pos: new THREE.Vector3(w.x, DECK_Y + 0.8, w.z), r: 1.8, label: () => (FP.scuba ? '归还潜水装备' : '租一套潜水装备（面镜、气瓶、脚蹼）'), use: toggleScuba });
+}
+function setMask(v) { const el = $('#fpMask'); if (el) el.style.opacity = clamp(v, 0, 1).toFixed(3); }
+function toggleScuba() {
+  const on = !FP.scuba;
+  startAct({
+    dur: 1.9, label: on ? '穿戴潜水装备' : '卸下潜水装备',
+    hands(k) {
+      const up = bump(k, 0.1, 0.9);
+      hand('R', lerp(0.3, 0.1, up), lerp(-0.62, -0.05, up), lerp(-0.3, -0.2, up), -1.2 * up); hand('L', lerp(-0.3, -0.1, up), lerp(-0.62, -0.05, up), lerp(-0.3, -0.2, up), -1.2 * up);
+      setMask(on ? seg(k, 0.4, 0.6) : 1 - seg(k, 0.4, 0.6));
+    },
+    cues: [[0.5, () => { FP.scuba = on; FP.air = 1; audio.thud(0.25); }], [0.9, () => fpToast(on ? '戴好了面镜、背上气瓶、穿好脚蹼：在水下可以一直呼吸，游得也更快。再来这里可以归还。' : '装备已经还回架子上了。', 5)]],
+  });
+}
+
+// ---------------------------------------------------------------------
+//  Light shafts under water
+// ---------------------------------------------------------------------
+function buildShafts() {
+  const mat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    uniforms: { uTime: U.time, uK: { value: 0 }, uCol: U.sunLight },
+    vertexShader: 'varying vec2 vUv; varying float vD; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vD = -mv.z; gl_Position = projectionMatrix * mv; }',
+    fragmentShader: `uniform float uTime, uK; uniform vec3 uCol; varying vec2 vUv; varying float vD;
+      void main(){ float edge = smoothstep(0.0, 0.35, vUv.x) * smoothstep(1.0, 0.65, vUv.x);
+        float fall = pow(vUv.y, 1.6); float flick = 0.65 + 0.35 * sin(uTime * 0.7 + vUv.x * 6.0 + vUv.y * 3.0);
+        float a = edge * fall * flick * uK * exp(-vD * 0.07) * smoothstep(0.3, 2.0, vD);
+        gl_FragColor = vec4(uCol * vec3(0.75, 0.95, 1.0) * a, 1.0); }`,
+  });
+  for (let k = 0; k < 16; k++) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+    m.frustumCulled = false; m.renderOrder = 6; m.visible = false; scene.add(m);
+    OCEAN.shafts.push({ m, a: rand() * TAU, r: rr(2, 15), w: rr(0.4, 1.8), drift: rr(-0.05, 0.05), ph: rand() * 10 });
+  }
+  OCEAN.shaftMat = mat;
+}
+
+function buildOcean(A) {
+  buildWreck(); buildArch(); buildClams(); buildAnemones(); buildOctopi(); buildEels(); buildRays(); buildSeahorses(); buildUrchins(); buildShells(); buildBottle(); buildDiveRack(A); buildShafts();
+  // the north-east barrier reef and the deep blue are places too
+  OCEAN.places.reef = (() => { for (let a = -0.75 - 0.6; a < -0.75 + 0.6; a += 0.05) { for (let r = 30; r < 60; r += 1) { const x = Math.cos(a) * r, z = Math.sin(a) * r; if (hAt(x, z) > -0.5 && islandD(x, z) < -10) return { x, z, y: -0.6, r: 7 }; } } return null; })();
+  OCEAN.places.deep = { deepest: true };
+}
+
+// ---------------------------------------------------------------------
+//  Per-frame
+// ---------------------------------------------------------------------
+const _ov = new THREE.Vector3();
+function updateOcean(dt, t) {
+  const cam = camera.position, under = FP.active && FP.under > 0.4;
+  DIVER.on = FP.active && FP.mode === 'swim'; DIVER.p.copy(cam);
+  const near = (x, y, z, r) => FP.active && Math.abs(cam.x - x) < r && Math.abs(cam.z - z) < r && Math.hypot(cam.x - x, cam.y - y, cam.z - z) < r;
+
+  for (const c of OCEAN.clams) {
+    if (near(c.p.x, c.p.y + 0.3, c.p.z, 1.9 * c.s)) c.shut = 4;
+    c.shut -= dt;
+    c.open = c.shut > 0 ? Math.max(0, c.open - dt * 3) : Math.min(1, c.open + dt * 0.25);
+    const a = 0.03 + 0.2 * c.open;
+    c.L.rotation.z = a; c.R.rotation.z = -a;
+    c.mantle.scale.set(0.4 + 0.6 * c.open, 0.5 + 0.5 * c.open + 0.04 * Math.sin(t * 1.3 + c.s), 1);
+    if (c.pearl) c.pearl.visible = c.open > 0.25;
+  }
+  for (const e of OCEAN.eels) {
+    if (near(e.p.x, e.p.y + 0.3, e.p.z, 1.7)) e.hide = 5;
+    e.hide -= dt;
+    const want = e.hide > 0 ? 0.08 : 0.45 + 0.2 * Math.sin(t * 0.3 + e.ph);
+    e.out = lerp(e.out, want, 1 - Math.exp(-dt * (e.hide > 0 ? 7 : 0.8)));
+    e.holder.position.set(0, 0.3 + 0.03 * Math.sin(t * 0.7 + e.ph), 0.35 + e.out - e.len / 2);
+    e.holder.rotation.set(-0.15 + 0.08 * Math.sin(t * 0.5 + e.ph), 0.25 * Math.sin(t * 0.4 + e.ph), 0);
+    e.jawPivot.rotation.x = 0.35 * Math.max(0, Math.sin(t * 1.6 + e.ph));     // gulping water over the gills
+  }
+  // small, many-part creatures are only drawn when someone is close enough to see them
+  for (const o of OCEAN.octos) o.g.visible = cam.distanceTo(o.g.position) < 45;
+  for (const e of OCEAN.eels) e.holder.visible = cam.distanceTo(e.g.position) < 45;
+  for (const h of OCEAN.horses) h.m.visible = cam.distanceTo(h.m.position) < 30;
+  for (const o of OCEAN.octos) {
+    const d = o.dens[o.den];
+    o.alarm = Math.max(0, o.alarm - dt * 0.25);
+    if (o.state === 'rest' && near(d.x, d.y + 0.2, d.z, 2.3)) {
+      o.state = 'jet'; o.t = 0; o.alarm = 1; o.from.copy(o.g.position);
+      o.den = (o.den + 1 + Math.floor(rand() * (o.dens.length - 1))) % o.dens.length; const n = o.dens[o.den];
+      o.to.set(n.x, n.y, n.z); o.yaw = Math.atan2(o.to.x - o.from.x, o.to.z - o.from.z);
+      emitInk(_ov.copy(o.from).add(_up(0.2)), 40); audio.splash(0.15);
+    }
+    if (o.state === 'jet') {
+      o.t += dt / 1.8; const k = Math.min(1, o.t), e = 1 - (1 - k) * (1 - k);
+      o.g.position.lerpVectors(o.from, o.to, e); o.g.position.y += Math.sin(Math.PI * k) * 0.9;
+      o.g.rotation.set(1.35 * (1 - seg(k, 0.75, 1)), o.yaw, 0, 'YXZ');
+      if (k < 0.35 && rand() < dt * 30) emitInk(o.g.position, 2);
+      if (k >= 1) o.state = 'rest';
+    } else { o.g.rotation.x = lerp(o.g.rotation.x, 0, 1 - Math.exp(-dt * 3)); o.g.position.y = lerp(o.g.position.y, hAt(o.g.position.x, o.g.position.z) + 0.04, 1 - Math.exp(-dt * 2)); }
+    // camouflage: sandy mottled brown at rest, dark red when alarmed
+    o.mat.color.set('#8f7a5c').lerp(_c1.set('#6a2420'), o.alarm);
+    const jet = o.state === 'jet';
+    o.body.scale.y = 1 + 0.06 * Math.sin(t * 2.2 + o.yaw);
+    for (const a of o.arms) {
+      a.root.rotation.x = jet ? -1.3 : 0.15 + 0.12 * Math.sin(t * 0.8 + a.ph);
+      a.segs.forEach((s, i) => { s.rotation.x = jet ? 0.08 * Math.sin(t * 8 + i) : 0.18 + 0.22 * Math.sin(t * 0.9 + a.ph + i * 0.7); s.rotation.y = jet ? 0 : 0.15 * Math.sin(t * 0.6 + a.ph * 2 + i); });
+    }
+  }
+  if (OCEAN.ink) {
+    const I = OCEAN.ink, ages = I.g.attributes.aAge.array;
+    for (let i = 0; i < I.N; i++) {
+      if (I.age[i] > 4) { ages[i] = 1; continue; }
+      I.age[i] += dt; for (let a = 0; a < 3; a++) { I.pos[i * 3 + a] += I.vel[i * 3 + a] * dt; I.vel[i * 3 + a] *= 0.97; }
+      ages[i] = Math.min(1, I.age[i] / 4);
+    }
+    I.g.attributes.position.needsUpdate = true; I.g.attributes.aAge.needsUpdate = true;
+  }
+  for (const r of OCEAN.rays) {
+    if (near(r.pos.x, r.pos.y, r.pos.z, 2.6)) { r.flee = 3; r.resting = 0; }
+    r.flee -= dt; r.rest -= dt;
+    if (r.rest < 0 && r.resting <= 0 && r.flee <= 0) { r.resting = rr(5, 10); r.rest = rr(14, 30); }
+    r.resting -= dt;
+    const sp = r.flee > 0 ? 1.5 : r.resting > 0 ? 0 : 0.4;
+    r.speed = lerp(r.speed, sp, 1 - Math.exp(-dt * 2));
+    r.s += r.speed * dt;
+    r.track.sample(r.s, r.pos, r.tan);
+    const bed = hAt(r.pos.x, r.pos.z);
+    r.y = lerp(r.y, bed + (r.resting > 0 ? 0.03 : r.flee > 0 ? 0.6 : 0.16), 1 - Math.exp(-dt * 1.5));
+    r.pos.y = r.y; r.m.position.copy(r.pos);
+    r.m.rotation.set(0, Math.atan2(r.tan.x, r.tan.z), 0.06 * Math.sin(t * 0.6 + r.s));
+  }
+  for (const h of OCEAN.horses) { h.m.position.y = h.p.y + 0.3 + 0.03 * Math.sin(t * 0.8 + h.ph); h.m.rotation.y += Math.sin(t * 0.3 + h.ph) * dt * 0.3; h.m.rotation.z = 0.08 * Math.sin(t * 0.6 + h.ph); }
+  if (OCEAN.bottle && !OCEAN.bottle.taken) OCEAN.bottle.g.rotation.z = 0.05 * Math.sin(t * 0.7);
+  // a faint glint so the shells can be spotted in the sand
+  for (const s of OCEAN.shells) if (!s.taken) { const d = cam.distanceTo(s.m.position); s.m.material.emissiveIntensity = under && d < 7 ? 0.06 + 0.06 * Math.max(0, Math.sin(t * 2 + s.p.x)) : 0; }
+
+  // light shafts around the diver
+  const k = FP.active ? FP.under * U.sunVis.value * (1 - U.rain.value * 0.8) * 0.5 : 0;
+  OCEAN.shaftMat.uniforms.uK.value = k;
+  for (const s of OCEAN.shafts) {
+    s.m.visible = k > 0.01;
+    if (!s.m.visible) continue;
+    s.a += s.drift * dt;
+    const x = cam.x + Math.cos(s.a) * s.r, z = cam.z + Math.sin(s.a) * s.r, bed = hAt(x, z), top = waterAt(x, z, t) - 0.05, h = Math.max(1, top - bed);
+    s.m.scale.set(s.w, h, 1); s.m.position.set(x + U.sunDir.value.x * h * 0.15, (top + bed) / 2, z + U.sunDir.value.z * h * 0.15);
+    s.m.rotation.set(0, Math.atan2(cam.x - x, cam.z - z), 0);
+    s.m.rotateZ(-0.15 * Math.sign(U.sunDir.value.x));
+  }
+}
+
+// ---------------------------------------------------------------------
+//  Ocean log: species and places you have seen, things you have found
+// ---------------------------------------------------------------------
+const schoolPts = (sp) => SCHOOLS.filter((s) => s.species === sp).map((s) => s.c);
+const LOG = [
+  { id: 'blueTang', name: '蓝倒吊', r: 5, pts: () => schoolPts('blueTang'), where: '泻湖', desc: '刺尾鱼的一种，尾柄两侧各有一枚锋利的骨刺。常成小群在珊瑚礁间觅食。' },
+  { id: 'yellowTang', name: '黄高鳍刺尾鱼', r: 5, pts: () => schoolPts('yellowTang'), where: '泻湖', desc: '通体亮黄，以啃食礁石上的藻类为主，帮助珊瑚不被藻类覆盖。' },
+  { id: 'angel', name: '镰鱼', r: 5, pts: () => schoolPts('angel'), where: '泻湖', desc: '背鳍延长成一根镰刀状的长丝，常成对或结小群出没。' },
+  { id: 'parrot', name: '鹦嘴鱼', r: 5, pts: () => schoolPts('parrot'), where: '泻湖', desc: '用喙一样的牙齿刮食珊瑚表面的藻类，啃下的碎屑排出后成为细白沙的来源之一。' },
+  { id: 'clown', name: '小丑鱼', r: 3, pts: () => schoolPts('clown'), where: '珊瑚丘上的海葵', desc: '与海葵共生，体表的黏液让它不会被海葵的刺细胞蜇伤。' },
+  { id: 'anemone', name: '海葵', r: 3, pts: () => OCEAN.anemones, where: '珊瑚丘', desc: '触手上布满刺细胞，能麻痹靠近的小动物；看上去像花，其实是动物。' },
+  { id: 'bait', name: '饵鱼群', r: 7, pts: () => schoolPts('bait'), where: '礁前的深水', desc: '成百上千条小鱼聚成旋转的鱼球，让捕食者难以锁定其中任何一条。' },
+  { id: 'shark', name: '黑鳍礁鲨', r: 7, pts: () => MARINE.sharks.map((s) => s.pos), where: '外礁', desc: '背鳍和尾鳍末端是黑色的，常在浅礁巡游，性情较胆小。' },
+  { id: 'turtle', name: '绿海龟', r: 5, pts: () => MARINE.turtles.map((s) => s.pos), surface: true, where: '泻湖', desc: '成年后主要吃海草和藻类，需要定时浮上水面换气。' },
+  { id: 'manta', name: '蝠鲼', r: 8, pts: () => MARINE.mantas.map((s) => s.pos), where: '礁坡', desc: '张开大嘴滤食浮游生物，体盘宽度可以达到好几米。' },
+  { id: 'dolphin', name: '海豚', r: 14, pts: () => MARINE.dolphins.map((s) => s.pos), surface: true, where: '外海', desc: '群居，用回声定位寻找鱼群，经常结伴跃出海面。' },
+  { id: 'whale', name: '座头鲸', r: 28, pts: () => [MARINE.whale.pos], surface: true, where: '外海', desc: '有长长的胸鳍，下潜前会把尾鳍高高甩出水面；雄鲸会唱复杂的“歌”。' },
+  { id: 'jelly', name: '水母', r: 4, pts: () => MARINE.jellies.map((j) => j.g.position), where: '深水区', desc: '身体大部分是水，靠伞部一张一缩缓缓前进；夜里会发出微光。' },
+  { id: 'crab', name: '沙蟹', r: 3, pts: () => MARINE.crabs.map((c) => c.m.position), surface: true, where: '沙滩浪花边', desc: '在沙滩上横着飞快地跑，受惊就钻回沙洞里。' },
+  { id: 'octopus', name: '章鱼', r: 3.5, pts: () => OCEAN.octos.map((o) => o.g.position), where: '泻湖的礁石间', desc: '能在一瞬间改变体色和皮肤纹理来伪装，受惊时喷出墨汁逃走。' },
+  { id: 'eel', name: '海鳗', r: 3, pts: () => OCEAN.eels.map((e) => e.p), where: '礁石缝', desc: '常年躲在石缝里，嘴巴一张一合其实是在让水流过鳃来呼吸。' },
+  { id: 'ray', name: '魟鱼', r: 4, pts: () => OCEAN.rays.map((r) => r.pos), where: '泻湖沙底', desc: '常半埋在沙里休息，尾巴上有毒刺，在浅水走路时要小心。' },
+  { id: 'seahorse', name: '海马', r: 2.2, pts: () => OCEAN.horses.map((h) => h.m.position), where: '浅水的海草间', desc: '由雄性在育儿袋里孵育后代，用卷曲的尾巴缠住海草。' },
+  { id: 'clam', name: '砗磲', r: 3, pts: () => OCEAN.clams.map((c) => c.p), where: '泻湖与礁坪', desc: '最大的双壳贝类，外套膜里共生的藻类为它提供养分，所以颜色才这么鲜艳。' },
+  { id: 'urchin', name: '海胆', r: 2.5, pts: () => OCEAN.urchins, where: '礁石上', desc: '全身长满棘刺，主要啃食藻类，夜里更活跃。' },
+  { id: 'barracuda', name: '梭鱼', r: 7, pts: () => schoolPts('barracuda'), where: '沉船附近', desc: '身体细长、牙齿锋利，能在短距离内高速冲刺。' },
+  { id: 'grouper', name: '石斑鱼', r: 5, pts: () => schoolPts('grouper'), where: '沉船附近', desc: '喜欢在沉船和礁洞附近定居，有的种类能长得很大。' },
+];
+const PLACES = [
+  { id: 'wreck', name: '沉船「晨星号」', where: '礁坡下的深水', desc: '一艘老式木帆船静静躺在沙底，船身长满了珊瑚，船尾旁埋着一只箱子。' },
+  { id: 'arch', name: '海底拱门', where: '礁坡', desc: '一座布满珊瑚的天然石拱，可以从下面游过去。' },
+  { id: 'clams', name: '砗磲礁坪', where: '泻湖', desc: '几只巨大的砗磲张着壳晒太阳，靠太近它们就会合上。' },
+  { id: 'reef', name: '东北堡礁', where: '东北方向', desc: '浪在礁冠上碎成白花，礁前的水一下子由绿松石转为深蓝。' },
+  { id: 'deep', name: '深蓝外海', where: '水深 7 米以上', desc: '这里已经看不见阳光照到的沙底，只有偶尔经过的水母和远处的鲸。' },
+];
+function discover(id, name, place) {
+  if (OLOG.found[id]) return;
+  OLOG.found[id] = true; saveLog();
+  const n = Object.keys(OLOG.found).length, total = LOG.length + PLACES.length;
+  fpToast(`${place ? '新地点' : '新发现'}：${name}（海洋图鉴 ${n} / ${total}）`, 4);
+  audio.discover(place ? 1 : 0);
+  if (!$('#oceanLog').hidden) renderLog();
+}
+const _fwd = new THREE.Vector3(), _dp = new THREE.Vector3();
+function updateDiscovery() {
+  if (!FP.active) return;
+  const cam = camera.position, under = FP.under > 0.5;
+  _fwd.set(0, 0, -1).applyQuaternion(camera.quaternion);
+  for (const e of LOG) {
+    if (OLOG.found[e.id]) continue;
+    if (!under && !e.surface) continue;
+    for (const p of e.pts()) {
+      if (!p) continue;
+      _dp.set(p.x - cam.x, (p.y ?? cam.y) - cam.y, p.z - cam.z); const d = _dp.length();
+      if (d < e.r && (d < e.r * 0.4 || _dp.dot(_fwd) / d > 0.45)) { discover(e.id, e.name, false); break; }
+    }
+  }
+  for (const pl of PLACES) {
+    if (OLOG.found[pl.id]) continue;
+    const q = OCEAN.places[pl.id];
+    if (!q) continue;
+    if (q.deepest) { if (under && waterAt(cam.x, cam.z, U.time.value) - hAt(cam.x, cam.z) > 7) discover(pl.id, pl.name, true); continue; }
+    if (Math.hypot(cam.x - q.x, cam.z - q.z) < q.r && (under || pl.id === 'reef')) discover(pl.id, pl.name, true);
+  }
+}
+function renderLog() {
+  const found = OLOG.found, card = (e, place) => `<li class="${found[e.id] ? 'got' : ''}"><b>${found[e.id] ? e.name : '？？？'}</b><span>${found[e.id] ? e.desc : '线索：' + e.where}</span></li>`;
+  const n = Object.keys(found).length, total = LOG.length + PLACES.length, shells = (OLOG.got.shells || []).length;
+  $('#logProgress').textContent = `已发现 ${n} / ${total}`;
+  $('#logSpecies').innerHTML = LOG.map((e) => card(e)).join('');
+  $('#logPlaces').innerHTML = PLACES.map((e) => card(e, true)).join('');
+  $('#logItems').innerHTML = [
+    ['贝壳', `${shells} / 14`], ['珍珠', OLOG.got.pearl ? '已找到' : '藏在某只砗磲里'], ['沉船宝箱', OLOG.got.chest ? '已打开' : '在沉船附近'], ['漂流瓶', OLOG.got.bottle ? '已读过' : '躺在泻湖的沙底'],
+  ].map(([a, b]) => `<li><b>${a}</b><span>${b}</span></li>`).join('');
+}
+function toggleLog(open = $('#oceanLog').hidden) {
+  $('#oceanLog').hidden = !open;
+  if (open) { renderLog(); if (document.pointerLockElement) document.exitPointerLock(); }
+}
+
+
+// =====================================================================
 //  Time of day — keyframed light, sky and grade
 // =====================================================================
 // hour, sun/moon light colour & intensity, hemisphere sky/ground & intensity,
@@ -4085,7 +4819,7 @@ const GradeShader = {
       vec2 uv = vUv;
       if (uUnder > 0.001) uv += vec2(sin(vUv.y * 23.0 + uTime * 1.7), cos(vUv.x * 19.0 + uTime * 1.3)) * 0.0022 * uUnder;   // refraction shimmer
       vec3 c = texture2D(tDiffuse, uv).rgb;
-      c *= mix(vec3(1.0), vec3(0.62, 0.95, 1.05), uUnder);   // the last bit of red is lost on the way to the eye
+      c *= mix(vec3(1.0), vec3(0.85, 0.98, 1.03), uUnder);   // a little more red is lost on the way to the eye (the materials already absorb most of it)
       c *= vec3(1.0 + uWarm * 0.09, 1.0 + uWarm * 0.015, 1.0 - uWarm * 0.1);   // white balance
       c = aces(c * uExposure / 0.7);
       c = toSRGB(c);
@@ -4192,7 +4926,7 @@ function enterFP() {
   FP.active = true;
   const s = coastPoint(112, 2.4);
   FP.pos.set(s.x, groundAt(s.x, s.z, 9).y, s.z);
-  FP.vel.set(0, 0, 0); FP.yaw = Math.atan2(-s.nx, -s.nz); FP.pitch = -0.05; FP.mode = 'walk'; FP.act = null;
+  FP.vel.set(0, 0, 0); FP.yaw = Math.atan2(-s.nx, -s.nz); FP.pitch = -0.05; FP.mode = 'walk'; FP.act = null; FP.air = 1; FP.noAir = false;
   if (camera.parent !== scene) scene.add(camera);   // so the arms (children of the camera) render
   camera.near = 0.05; camera.clearViewOffset(); fitFov(); resizePost();
   controls.enabled = false; camTween = null;
@@ -4209,6 +4943,7 @@ function exitFP() {
   if (!FP.active) return;
   if (FP.mode === 'boat') leaveBoat(true);
   cancelAct(); if (FP.seat && FP.seat.spot) FP.seat.spot.taken = false;
+  FP.scuba = false; setMask(0); closeLetter();
   FP.active = false; FP.mode = 'walk'; FP.seat = null; FP.ride = null;
   if (ARMS.root) ARMS.root.visible = false;
   try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) { /* not locked */ }
@@ -4247,6 +4982,9 @@ function drawMap() {
   g.drawImage(MAP_BASE, 0, 0);
   g.fillStyle = 'rgba(255,255,255,0.85)';
   for (const b of BOATS) { g.beginPath(); g.arc((b.g.position.x + R) * sc, (b.g.position.z + R) * sc, 2, 0, TAU); g.fill(); }
+  // places found under water
+  g.strokeStyle = '#ffe6a8'; g.lineWidth = 1.4;
+  for (const id of ['wreck', 'arch', 'clams']) { const q = OCEAN.places[id]; if (!q || !OLOG.found[id]) continue; const x = (q.x + R) * sc, y = (q.z + R) * sc; g.beginPath(); g.moveTo(x, y - 4); g.lineTo(x + 4, y); g.lineTo(x, y + 4); g.lineTo(x - 4, y); g.closePath(); g.stroke(); }
   const px = (FP.pos.x + R) * sc, pz = (FP.pos.z + R) * sc, fx = -Math.sin(FP.yaw), fz = -Math.cos(FP.yaw);
   g.translate(px, pz); g.rotate(Math.atan2(fz, fx));
   g.fillStyle = '#ffc66d'; g.strokeStyle = 'rgba(0,0,0,0.6)'; g.lineWidth = 1.5;
@@ -4275,7 +5013,7 @@ function nearestInteraction() {
     for (const b of BOATS) if ((b.type === 'sail' || b.type === 'motor') && b.g.position.distanceTo(FP.boat.g.position) < 6) return { label: `登上${b.name}`, act: () => boardRide(b) };
     return { label: '下船', act: () => leaveBoat(false) };
   }
-  for (const s of COLL.spots) if (!s.taken) consider(s.pos.x, s.pos.y, s.pos.z, s.r, s.label(), () => useSpot(s));
+  for (const s of COLL.spots) if (!s.taken && (!s.when || s.when())) consider(s.pos.x, s.pos.y, s.pos.z, s.r, s.label(), () => useSpot(s));
   for (const b of BOATS) {
     const p = b.g.position;
     if (b.type === 'moored') consider(p.x, p.y + 0.3, p.z, 2.8, '划这条小船', () => takeBoat(b));
@@ -4305,6 +5043,7 @@ const standEye = (p) => p.clone().add(_up(FP_EYE));
 const yawTo = (from, to) => Math.atan2(-(to.x - from.x), -(to.z - from.z));
 
 function useSpot(s) {
+  if (s.use) { s.use(s); return; }
   if (s.kind === 'door') { openDoor(s.door); return; }
   if (s.kind === 'bed') { sleep(s); return; }
   if (s.kind === 'bar') { buyAtBar(s); return; }
@@ -4551,6 +5290,7 @@ function updateFP(dt, t) {
   let str = (K.KeyD || K.ArrowRight ? 1 : 0) - (K.KeyA || K.ArrowLeft ? 1 : 0) + FP.stick.x + PD.x;
   if (PD.lx || PD.ly) { FP.yaw -= PD.lx * dt * 2.7 * PAD.sens; FP.pitch = clamp(FP.pitch - PD.ly * dt * 1.9 * PAD.sens, -1.45, 1.45); }
   fwd = clamp(fwd, -1, 1); str = clamp(str, -1, 1);
+  if (FP.reading) fwd = str = 0;
   const run = K.ShiftLeft || K.ShiftRight || FP.run || PD.sprint;
   const fx = -Math.sin(FP.yaw), fz = -Math.cos(FP.yaw), rx = Math.cos(FP.yaw), rz = -Math.sin(FP.yaw);
   let eye = FP.act ? stepAct(dt, t) : null;   // an action in progress drives the camera
@@ -4603,7 +5343,7 @@ function updateFP(dt, t) {
 
   if (FP.mode === 'walk' || FP.mode === 'swim') {
     const swim = FP.mode === 'swim';
-    const speed = swim ? (run ? 1.9 : 1.15) : (run ? 3.5 : 1.55);
+    const speed = swim ? (run ? 1.9 : 1.15) * (FP.scuba ? 1.35 : 1) : (run ? 3.5 : 1.55);
     const len = Math.hypot(fwd, str) || 1, k = Math.min(1, Math.hypot(fwd, str));
     const tx = (fx * fwd + rx * str) / len * speed * k, tz = (fz * fwd + rz * str) / len * speed * k;
     const acc = Math.min(1, dt * (swim ? 2.5 : (FP.onGround ? 10 : 2)));
@@ -4635,8 +5375,10 @@ function updateFP(dt, t) {
       FP.surf = depth > 0.08 ? 'water' : G.surf;
     } else {
       const float = W + 0.1 - FP_EYE;
-      if (K.Space || PD.jump) FP.vel.y += (1.7 - FP.vel.y) * Math.min(1, dt * 4);
+      if (FP.noAir) FP.vel.y += (2.2 - FP.vel.y) * Math.min(1, dt * 3);   // out of breath: straight up
+      else if (K.Space || PD.jump) FP.vel.y += (1.7 - FP.vel.y) * Math.min(1, dt * 4);
       else if (K.KeyC || K.ControlLeft || PD.dive) FP.vel.y += (-1.5 - FP.vel.y) * Math.min(1, dt * 4);
+      else if (float - FP.pos.y > 1.3) FP.vel.y += ((FP.scuba ? 0 : 0.1) - FP.vel.y) * Math.min(1, dt * 2);   // deep: hover (a free diver drifts up very slowly)
       else FP.vel.y += ((float - FP.pos.y) * 2.2 - FP.vel.y) * Math.min(1, dt * 2.5);
       FP.pos.y += FP.vel.y * dt;
       FP.pos.y = clamp(FP.pos.y, G.y + 0.05 - (FP_EYE - 0.5), float + 0.05);
@@ -4685,6 +5427,17 @@ function updateFP(dt, t) {
     fog.color.copy(U.skyHorizon.value).lerp(U.skyTop.value, 0.15); fog.density = 0.0032 + state.rainK * 0.006;
   }
   U.under.value = under ? 1 : 0;
+  // breath: about fifty seconds on a lungful; the scuba set removes the limit
+  if (FP.scuba) FP.air = 1;
+  else if (under) FP.air = Math.max(0, FP.air - dt / 50);
+  else FP.air = Math.min(1, FP.air + dt / 3);
+  if (under && FP.air < 0.25 && !FP.lowAir) { FP.lowAir = true; fpToast('快憋不住了，该浮上去换口气。', 3); }
+  if (FP.air > 0.5) FP.lowAir = false;
+  if (under && FP.air <= 0 && !FP.noAir) { FP.noAir = true; fpToast('没气了！赶紧上浮——', 2.5); padRumble(0.6, 0.6, 400); }
+  if (!under && FP.noAir) { FP.noAir = false; audio.splash(0.35); }
+  const airEl = $('#fpAir'); airEl.hidden = !(under || FP.air < 0.995);
+  if (!airEl.hidden) { $('#fpAirBar').style.width = (FP.air * 100).toFixed(1) + '%'; airEl.classList.toggle('low', FP.air < 0.25 && !FP.scuba); airEl.firstElementChild.textContent = FP.scuba ? '气瓶' : '憋气'; }
+  if (FP.scuba && under) { FP.bubT = (FP.bubT ?? 2) - dt; if (FP.bubT < 0) { FP.bubT = 3.4; _fv.set(0, -0.12, -0.25).applyQuaternion(camera.quaternion).add(eye); emitSplash(_fv.x, _fv.y, _fv.z, 10, { up: 0.5, spread: 0.12, grav: -3.5, life: 2.6, size: 0.4, jitter: 0.04 }); audio.bubbles(); } }
   gradePass.uniforms.uUnder.value = FP.under;
   if (snow) { snow.visible = FP.under > 0.1; snow.position.copy(eye); }
 
@@ -4735,6 +5488,7 @@ function setupFPInput() {
   addEventListener('keydown', (e) => {
     if (!FP.active || e.target.tagName === 'INPUT') return;
     FP.keys[e.code] = true;
+    if (FP.reading) { if (['KeyE', 'Space', 'Enter'].includes(e.code)) { closeLetter(); e.preventDefault(); } return; }
     if (e.code === 'KeyE' && !e.repeat) fpInteract();
     if (e.code === 'KeyT' && !e.repeat) nextPeriod();
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
@@ -5001,6 +5755,8 @@ function pollGamepad(dt) {
   if (hit(BTN.DOWN)) $('#btnPlay').click();
   if (b[BTN.LEFT] || b[BTN.RIGHT]) { state.hour = (state.hour + (b[BTN.RIGHT] ? 1.6 : -1.6) * dt + 24) % 24; state.timeTween = null; }
   if (hit(BTN.VIEW)) $('#btnSound').click();
+  if (hit(BTN.RS)) toggleLog();
+  if (!$('#letter').hidden && (hit(BTN.A) || hit(BTN.B) || hit(BTN.X))) { closeLetter(); return; }
   if (hit(BTN.MENU)) { const app = $('#app'); app.classList.toggle('ui-hidden'); if (app.classList.contains('ui-hidden')) { $('#settings').hidden = true; $('#btnSettings').setAttribute('aria-pressed', 'false'); } }
 
   if (FP.active) {
@@ -5190,6 +5946,16 @@ class Ambience {
     if (!this.live()) return;
     this.burst(0.18, 0.25 * k, [this.filt('lowpass', 220, 1.2)]);
     this.burst(0.04, 0.05 * k, [this.filt('bandpass', 1600, 1.5)]);
+  }
+  discover(k = 0) {   // a soft two-note chime for a new find
+    if (!this.live()) return;
+    const base = k ? 784 : 659;
+    for (const [i, f] of [[0, base], [1, base * 1.335]]) for (const [m, a] of [[1, 0.05], [2.76, 0.012]]) this.tone([[0, f * m]], 1.6, { gain: a, when: i * 0.14, bus: 'fx', attack: 0.005 });
+  }
+  bubbles() {   // a diver breathing out through the regulator
+    if (!this.live()) return;
+    this.burst(0.9, 0.05, [this.filt('bandpass', 380, 0.8)], { attack: 0.05 });
+    for (let i = 0; i < 9; i++) { const f = 300 + Math.random() * 500; this.tone([[0, f], [0.05, f * 1.8]], 0.06, { gain: 0.02, pan: Math.random() * 0.4 - 0.2, when: 0.1 + Math.random() * 0.8, bus: 'fx' }); }
   }
   setEnabled(on) {
     if (on && !this.ensure()) return false;
@@ -5441,6 +6207,11 @@ function setupUI() {
   rainBtn.addEventListener('click', () => { state.rainTarget = state.rainTarget ? 0 : 1; rainBtn.setAttribute('aria-pressed', String(!!state.rainTarget)); $('#rainLabel').textContent = state.rainTarget ? '雨停' : '下雨'; });
   document.querySelectorAll('#camSeg button').forEach((b) => b.addEventListener('click', () => setCamMode(b.dataset.cam)));
   $('#btnNext').addEventListener('click', nextFollow);
+  $('#btnLog').addEventListener('click', () => toggleLog());
+  $('#fpLog').addEventListener('click', () => toggleLog());
+  $('#logClose').addEventListener('click', () => toggleLog(false));
+  $('#logReset').addEventListener('click', () => { if (confirm('清空图鉴和收集进度，从头再找一遍？')) { store.set('oceanFound', {}); store.set('oceanGot', {}); location.reload(); } });
+  $('#letterClose').addEventListener('click', closeLetter);
   const setPanel = (open) => { $('#settings').hidden = !open; $('#btnSettings').setAttribute('aria-pressed', String(open)); if (open) movePill($('#qualSeg')); };
   $('#btnSettings').addEventListener('click', () => setPanel($('#settings').hidden));
   const hideUI = (h) => { $('#app').classList.toggle('ui-hidden', h); if (h) setPanel(false); };
@@ -5470,7 +6241,8 @@ function setupUI() {
     else if (k === 'm') btnSound.click();
     else if (k === 'h') hideUI(!$('#app').classList.contains('ui-hidden'));
     else if (k === 'f') $('#btnFull').click();
-    else if (k === 'escape') setPanel(false);
+    else if (k === 'j') toggleLog();
+    else if (k === 'escape') { setPanel(false); if (!$('#oceanLog').hidden) toggleLog(false); if (!$('#letter').hidden) closeLetter(); }
   });
   if (IS_TOUCH) $('#hint').textContent = '单指旋转 · 双指缩放和平移';
   setTimeout(() => $('#hint').classList.add('fade'), 9000);
@@ -5520,6 +6292,8 @@ function frame() {
   updatePeople(dt, t, EXTRA);
   updateGulls(dt, t, E.day * (1 - state.rainK * 0.7));
   updateMarine(dt, t);
+  updateOcean(dt, t);
+  if ((state.discT = (state.discT || 0) - dt) < 0) { state.discT = 0.3; updateDiscovery(); }
   updateWake(dt);
   for (const c of CLOUDS) {
     c.ang += c.speed * dt * (1 + state.rainK);
@@ -5578,7 +6352,7 @@ async function init() {
     ['搭建高脚屋和码头…', () => { A = buildStructures(); }],
     ['种下椰子树…', () => { buildPalms(); buildVegetation(); buildClouds(); }],
     ['请岛民们出门散步…', () => { buildBoats(A); EXTRA = buildPeople(A); buildGulls(); fireflies = buildFireflies(); buildRain(); buildWake(); }],
-    ['海里的居民也游过来了…', () => buildMarine()],
+    ['海里的居民也游过来了…', () => { buildMarine(); buildOcean(A); }],
     ['调好今天的光线…', () => {
       controls = new OrbitControls(camera, canvas);
       Object.assign(controls, { enableDamping: true, dampingFactor: 0.06, minDistance: 12, maxDistance: 300, maxPolarAngle: 1.36, minPolarAngle: 0.1, rotateSpeed: 0.55, zoomSpeed: 0.8, panSpeed: 0.6, autoRotateSpeed: 0.3 });
@@ -5619,7 +6393,7 @@ init().catch((err) => {
 });
 
 // handy for tinkering from the browser console
-window.__island = { MARINE, CLOUDS, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph, FP, COLL, groundAt, fpInteract, nearestInteraction, enterFP, exitFP, BOATS, PEOPLE, takeBoat, boardRide, useSpot, coastPoint, hAt, waterAt, updateFP, updateBoats, U, updateCamera, nextFollow, get camMode() { return camMode; }, greet, leaveRide, standUp, ARMS, PAD, pollGamepad, get camModeNow() { return camMode; } };
+window.__island = { MARINE, CLOUDS, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph, FP, COLL, OCEAN, OLOG, toggleLog, closeLetter, groundAt, fpInteract, nearestInteraction, enterFP, exitFP, BOATS, PEOPLE, takeBoat, boardRide, useSpot, coastPoint, hAt, waterAt, updateFP, updateBoats, U, updateCamera, nextFollow, get camMode() { return camMode; }, greet, leaveRide, standUp, ARMS, PAD, pollGamepad, get camModeNow() { return camMode; } };
 
 </script>
 </body>
