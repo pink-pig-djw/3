@@ -214,6 +214,17 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .fp-btns button[aria-pressed="true"] { background: var(--lagoon); color: #08302b; }
 .fp-fade { position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity 1.2s ease; }
 .fp-fade.on { opacity: 1; }
+/* gamepad glyphs (Xbox colours) and hints that follow the last-used input */
+kbd.xb { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: rgba(255, 255, 255, 0.16); color: var(--ink); font: 600 11.5px var(--font-ui); }
+kbd.xb-a, .fp-prompt kbd.xb-a { background: #3fae3f; color: #fff; }
+kbd.xb-b { background: #d8463c; color: #fff; }
+kbd.xb-x, .fp-prompt kbd.xb-x { background: #2f7fe0; color: #fff; border-radius: 12px; }
+kbd.xb-y { background: #f2b52a; color: #2b1d0b; }
+.pad-only { display: none !important; }
+#app.has-pad .pad-only { display: grid !important; }
+#app.has-pad p.pad-only { display: block !important; }
+#app.pad .fp-start .kb-only { display: none; }
+#app.pad .fp-start .fp-go { display: none; }
 /* eyelids for falling asleep and waking up */
 .fp-lids { --lid: 0; position: absolute; inset: 0; pointer-events: none; }
 .fp-lids::before, .fp-lids::after { content: ""; position: absolute; left: -10%; right: -10%; height: calc(var(--lid) * 62%); background: #030405; border-radius: 0 0 50% 50% / 0 0 40px 40px; box-shadow: 0 0 60px 40px #030405; opacity: min(1, calc(var(--lid) * 4)); }
@@ -336,10 +347,12 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
     <div class="field"><label for="sBloom">柔光泛光</label><output id="oBloom">100%</output><input type="range" id="sBloom" min="0" max="2" step="0.05" value="1"></div>
     <div class="field"><label for="sSpeed">时间速度</label><output id="oSpeed">一天 8 分钟</output><input type="range" id="sSpeed" min="0" max="1" step="0.01" value="0.45"></div>
     <div class="field"><label for="sVol">音量</label><output id="oVol">70%</output><input type="range" id="sVol" min="0" max="1" step="0.01" value="0.7"></div>
+    <div class="field"><label for="sPad">手柄灵敏度 · <span id="padState">未连接</span></label><output id="oPad">100%</output><input type="range" id="sPad" min="0.4" max="2" step="0.05" value="1"></div>
     <div class="field"><label>画质</label>
       <div class="seg" id="qualSeg" role="group" aria-label="画质"><span class="pill"></span><button data-q="low">流畅</button><button data-q="medium">均衡</button><button data-q="high">精美</button></div>
     </div>
     <div class="field"><label id="lblSpin">环绕时自动缓转</label><button class="switch" id="swSpin" role="switch" aria-checked="true" aria-labelledby="lblSpin"></button></div>
+    <p class="keys pad-only"><kbd class="xb">LB</kbd><kbd class="xb">RB</kbd> 相机　<kbd class="xb xb-y">Y</kbd> 时段　<kbd class="xb">↑</kbd> 下雨　<kbd class="xb">↓</kbd> 暂停　<kbd class="xb">←</kbd><kbd class="xb">→</kbd> 调时间　<kbd class="xb">LT</kbd><kbd class="xb">RT</kbd> 缩放　<kbd class="xb xb-a">A</kbd> 回到全景</p>
     <p class="keys"><kbd>空格</kbd> 时间　<kbd>R</kbd> 下雨　<kbd>1</kbd>–<kbd>4</kbd> 相机　<kbd>N</kbd> 换人　<kbd>M</kbd> 声音　<kbd>H</kbd> 隐藏界面</p>
   </div>
 
@@ -357,7 +370,17 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
       <div class="fp-card glass">
         <h2>第一人称漫游</h2>
         <p>沿着沙滩散步、下海潜水、划船出海，走进高脚屋和椰林小屋。</p>
-        <ul class="fp-keys">
+        <ul class="fp-keys pad-only">
+          <li><kbd class="xb">左摇杆</kbd> 移动</li>
+          <li><kbd class="xb">右摇杆</kbd> 环顾</li>
+          <li><kbd class="xb xb-a">A</kbd> 跳 / 上浮</li>
+          <li><kbd class="xb xb-b">B</kbd> 下潜 / 起身</li>
+          <li><kbd class="xb xb-x">X</kbd> 互动</li>
+          <li><kbd class="xb">RT</kbd> 冲刺</li>
+          <li><kbd class="xb xb-y">Y</kbd> 下一个时段</li>
+          <li><kbd class="xb">LB</kbd><kbd class="xb">RB</kbd> 切换相机</li>
+        </ul>
+        <ul class="fp-keys kb-only">
           <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</li>
           <li><kbd>鼠标</kbd> 环顾</li>
           <li><kbd>Shift</kbd> 跑 / 快游</li>
@@ -4523,10 +4546,12 @@ function fpInteract() { if (FP.act) return; const it = nearestInteraction(); if 
 function updateFP(dt, t) {
   if (!FP.active) return;
   const K = FP.keys;
-  let fwd = (K.KeyW || K.ArrowUp ? 1 : 0) - (K.KeyS || K.ArrowDown ? 1 : 0) - FP.stick.y;
-  let str = (K.KeyD || K.ArrowRight ? 1 : 0) - (K.KeyA || K.ArrowLeft ? 1 : 0) + FP.stick.x;
+  const PD = FP.pad;
+  let fwd = (K.KeyW || K.ArrowUp ? 1 : 0) - (K.KeyS || K.ArrowDown ? 1 : 0) - FP.stick.y - PD.y;
+  let str = (K.KeyD || K.ArrowRight ? 1 : 0) - (K.KeyA || K.ArrowLeft ? 1 : 0) + FP.stick.x + PD.x;
+  if (PD.lx || PD.ly) { FP.yaw -= PD.lx * dt * 2.7 * PAD.sens; FP.pitch = clamp(FP.pitch - PD.ly * dt * 1.9 * PAD.sens, -1.45, 1.45); }
   fwd = clamp(fwd, -1, 1); str = clamp(str, -1, 1);
-  const run = K.ShiftLeft || K.ShiftRight || FP.run;
+  const run = K.ShiftLeft || K.ShiftRight || FP.run || PD.sprint;
   const fx = -Math.sin(FP.yaw), fz = -Math.cos(FP.yaw), rx = Math.cos(FP.yaw), rz = -Math.sin(FP.yaw);
   let eye = FP.act ? stepAct(dt, t) : null;   // an action in progress drives the camera
 
@@ -4596,7 +4621,8 @@ function updateFP(dt, t) {
     FP.pos.x = _fq2.x; FP.pos.z = _fq2.z;
     const G = groundAt(FP.pos.x, FP.pos.z, feet), W = waterAt(FP.pos.x, FP.pos.z, t), depth = W - G.y;
     if (!swim) {
-      if ((K.Space) && FP.onGround) { FP.vel.y = 3.9; FP.onGround = false; K.Space = false; }
+      if ((K.Space || PD.jumpEdge) && FP.onGround) { FP.vel.y = 3.9; FP.onGround = false; K.Space = false; }
+      PD.jumpEdge = false;
       FP.vel.y -= 13 * dt;
       FP.pos.y += FP.vel.y * dt;
       if (FP.pos.y <= G.y) {
@@ -4609,8 +4635,8 @@ function updateFP(dt, t) {
       FP.surf = depth > 0.08 ? 'water' : G.surf;
     } else {
       const float = W + 0.1 - FP_EYE;
-      if (K.Space) FP.vel.y += (1.7 - FP.vel.y) * Math.min(1, dt * 4);
-      else if (K.KeyC || K.ControlLeft) FP.vel.y += (-1.5 - FP.vel.y) * Math.min(1, dt * 4);
+      if (K.Space || PD.jump) FP.vel.y += (1.7 - FP.vel.y) * Math.min(1, dt * 4);
+      else if (K.KeyC || K.ControlLeft || PD.dive) FP.vel.y += (-1.5 - FP.vel.y) * Math.min(1, dt * 4);
       else FP.vel.y += ((float - FP.pos.y) * 2.2 - FP.vel.y) * Math.min(1, dt * 2.5);
       FP.pos.y += FP.vel.y * dt;
       FP.pos.y = clamp(FP.pos.y, G.y + 0.05 - (FP_EYE - 0.5), float + 0.05);
@@ -4888,6 +4914,127 @@ function stepAct(dt, t) {
 }
 function setLids(v) { const el = $('#fpLids'); if (el) el.style.setProperty('--lid', clamp(v, 0, 1).toFixed(3)); }
 function cancelAct() { FP.act = null; setLids(0); }
+
+
+// =====================================================================
+//  Gamepad (Xbox layout, standard mapping)
+//   sticks: LS move / pan, RS look / orbit      A jump · swim up    B dive · stand up
+//   X interact (fp) / next subject (follow)     Y next time of day  LB/RB camera mode
+//   LT/RT zoom (orbit) · RT sprint (fp)         D-pad ↑ rain ↓ pause ←/→ scrub time
+//   View: sound   Menu: hide UI   LS click: sprint toggle
+// =====================================================================
+const PAD = { index: -1, prev: [], active: false, name: '', sens: store.get('padSens', 1), last: 'kb' };
+const BTN = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, VIEW: 8, MENU: 9, LS: 10, RS: 11, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
+const CAM_ORDER = ['orbit', 'follow', 'tour', 'fp'];
+FP.pad = { x: 0, y: 0, lx: 0, ly: 0, jump: false, jumpEdge: false, dive: false, sprint: false };
+
+// radial dead zone, then rescale so movement starts smoothly from zero
+function stick(gp, ax, ay, dz = 0.16) {
+  const x = gp.axes[ax] || 0, y = gp.axes[ay] || 0, m = Math.hypot(x, y);
+  if (m < dz) return [0, 0];
+  const k = Math.min(1, (m - dz) / (1 - dz)) / m;
+  return [x * k, y * k];
+}
+function padRumble(strong, weak, ms) {
+  if (PAD.last !== 'pad' || PAD.index < 0) return;
+  const gp = navigator.getGamepads && navigator.getGamepads()[PAD.index], act = gp && gp.vibrationActuator;
+  try { if (act && act.playEffect) act.playEffect('dual-rumble', { duration: ms, strongMagnitude: clamp(strong, 0, 1), weakMagnitude: clamp(weak, 0, 1) }).catch(() => {}); } catch (e) { /* not supported */ }
+}
+function padNotice(text) {
+  if (FP.active) { fpToast(text, 3.5); return; }
+  const h = $('#hint'); h.textContent = text; h.classList.remove('fade');
+  clearTimeout(padNotice.t); padNotice.t = setTimeout(() => h.classList.add('fade'), 4000);
+}
+function setInputMode(m) {
+  if (PAD.last === m) return;
+  PAD.last = m;
+  $('#app').classList.toggle('pad', m === 'pad');
+  const k = $('#fpPrompt kbd'); k.textContent = m === 'pad' ? 'X' : 'E'; k.classList.toggle('xb-x', m === 'pad');
+}
+function setupGamepad() {
+  addEventListener('gamepadconnected', (e) => {
+    if (PAD.index < 0) PAD.index = e.gamepad.index;
+    PAD.name = e.gamepad.id.replace(/\s*\(.*\)\s*/g, ' ').trim();
+    $('#app').classList.add('has-pad'); $('#padState').textContent = '已连接';
+    padNotice('已连接手柄：左摇杆移动，右摇杆看，LB / RB 切换相机');
+  });
+  addEventListener('gamepaddisconnected', (e) => {
+    if (e.gamepad.index !== PAD.index) return;
+    PAD.index = -1; PAD.prev = [];
+    const others = [...(navigator.getGamepads ? navigator.getGamepads() : [])].filter(Boolean);
+    if (others.length) PAD.index = others[0].index;
+    else { $('#app').classList.remove('has-pad'); $('#padState').textContent = '未连接'; setInputMode('kb'); }
+    padNotice('手柄已断开');
+  });
+  // keyboard, mouse or touch take over the on-screen hints again
+  for (const ev of ['keydown', 'pointerdown', 'wheel']) addEventListener(ev, () => setInputMode('kb'), { passive: true });
+  // splashes, landings and door bumps are felt in the hands
+  const sp = audio.splash.bind(audio), th = audio.thud.bind(audio);
+  audio.splash = (k = 1) => { sp(k); if (FP.active && k >= 0.3) padRumble(k * 0.5, k * 0.8, 120 + k * 220); };
+  audio.thud = (k = 1) => { th(k); if (FP.active) padRumble(k * 0.8, k * 0.4, 90); };
+}
+
+function pollGamepad(dt) {
+  if (!navigator.getGamepads) return;
+  const pads = navigator.getGamepads();
+  if (PAD.index < 0) { for (const g of pads) if (g && g.connected) { PAD.index = g.index; $('#app').classList.add('has-pad'); $('#padState').textContent = '已连接'; break; } }
+  const gp = PAD.index >= 0 ? pads[PAD.index] : null;
+  const P = FP.pad;
+  P.x = P.y = P.lx = P.ly = 0; P.jump = P.dive = P.sprint = P.jumpEdge = false;
+  if (!gp || !gp.connected) return;
+  const b = gp.buttons.map((x) => x.pressed), v = gp.buttons.map((x) => x.value);
+  const prev = PAD.prev, hit = (i) => b[i] && !prev[i];   // pressed this frame
+  PAD.prev = b;
+  const [lx, ly] = stick(gp, 0, 1), [rx, ry] = stick(gp, 2, 3);
+  const lt = (v[BTN.LT] || 0) > 0.08 ? v[BTN.LT] : 0, rt = (v[BTN.RT] || 0) > 0.08 ? v[BTN.RT] : 0;
+  const any = lx || ly || rx || ry || lt || rt || b.some(Boolean);
+  if (!any) return;
+  setInputMode('pad');
+
+  // global buttons
+  if (hit(BTN.LB) || hit(BTN.RB)) {
+    const i = CAM_ORDER.indexOf(camMode), n = CAM_ORDER[(i + (hit(BTN.RB) ? 1 : CAM_ORDER.length - 1)) % CAM_ORDER.length];
+    setCamMode(n);
+  }
+  if (hit(BTN.Y)) { if (FP.active) nextPeriod(); else { const hours = [...document.querySelectorAll('.chip')].map((c) => +c.dataset.hour); const nx = hours.find((h) => h > state.hour + 0.05) ?? hours[0]; document.querySelector(`.chip[data-hour="${nx}"]`).click(); } }
+  if (hit(BTN.UP)) $('#btnRain').click();
+  if (hit(BTN.DOWN)) $('#btnPlay').click();
+  if (b[BTN.LEFT] || b[BTN.RIGHT]) { state.hour = (state.hour + (b[BTN.RIGHT] ? 1.6 : -1.6) * dt + 24) % 24; state.timeTween = null; }
+  if (hit(BTN.VIEW)) $('#btnSound').click();
+  if (hit(BTN.MENU)) { const app = $('#app'); app.classList.toggle('ui-hidden'); if (app.classList.contains('ui-hidden')) { $('#settings').hidden = true; $('#btnSettings').setAttribute('aria-pressed', 'false'); } }
+
+  if (FP.active) {
+    // first person: LS walks, RS looks (squared response for fine aiming)
+    P.x = lx; P.y = ly;
+    P.lx = Math.sign(rx) * rx * rx; P.ly = Math.sign(ry) * ry * ry;
+    P.jump = b[BTN.A]; P.jumpEdge = hit(BTN.A);
+    P.dive = b[BTN.B] || b[BTN.LT];
+    if (hit(BTN.LS)) FP.run = !FP.run;
+    if (!lx && !ly) FP.run = false;
+    P.sprint = rt > 0.4;
+    if (hit(BTN.X)) fpInteract();
+    if (hit(BTN.B) && FP.mode === 'sit' && !FP.act) standUp();
+    if (!$('#fpStart').hidden) $('#fpStart').hidden = true;   // no mouse needed
+    return;
+  }
+
+  // diorama cameras: RS orbits, LS pans, triggers zoom
+  if (camMode === 'tour' && (lx || ly || rx || ry || lt || rt)) setCamMode('orbit', { silent: true });
+  if (hit(BTN.X) && camMode === 'follow') nextFollow();
+  if (hit(BTN.A)) { if (camMode !== 'orbit') setCamMode('orbit'); const h = homeView(); flyTo(h.pos, h.target, 2.4); }
+  if (rx || ry || lx || ly || lt || rt) {
+    camTween = null; idleT = 0; controls.autoRotate = false; $('#hint').classList.add('fade');
+    const s = PAD.sens, off = camera.position.clone().sub(controls.target), sp = new THREE.Spherical().setFromVector3(off);
+    sp.theta -= rx * dt * 1.7 * s;
+    sp.phi = clamp(sp.phi - ry * dt * 1.2 * s, controls.minPolarAngle, controls.maxPolarAngle);
+    sp.radius = clamp(sp.radius * Math.exp((lt - rt) * dt * 1.3), controls.minDistance, controls.maxDistance);
+    if (camMode === 'orbit' && (lx || ly)) {   // pan across the ground, faster when zoomed out
+      const fwd = new THREE.Vector3(-Math.sin(sp.theta), 0, -Math.cos(sp.theta)), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+      controls.target.addScaledVector(right, lx * sp.radius * 0.55 * dt).addScaledVector(fwd, -ly * sp.radius * 0.55 * dt);
+    }
+    camera.position.setFromSpherical(sp).add(controls.target);
+  }
+}
 
 
 // =====================================================================
@@ -5305,6 +5452,8 @@ function setupUI() {
   bindRange('#sBloom', '#oBloom', (v) => Math.round(v * 100) + '%', (v) => { state.bloom = v; });
   bindRange('#sSpeed', '#oSpeed', (v) => `一天 ${minutesPerDay(v) < 2 ? minutesPerDay(v).toFixed(1) : Math.round(minutesPerDay(v))} 分钟`, (v) => { state.speed = v; });
   bindRange('#sVol', '#oVol', (v) => Math.round(v * 100) + '%', (v) => audio.setVolume(v));
+  $('#sPad').value = PAD.sens;
+  bindRange('#sPad', '#oPad', (v) => Math.round(v * 100) + '%', (v) => { PAD.sens = v; store.set('padSens', v); });
   document.querySelectorAll('#qualSeg button').forEach((b) => { b.classList.toggle('active', b.dataset.q === qualityName); b.addEventListener('click', () => { document.querySelectorAll('#qualSeg button').forEach((x) => x.classList.toggle('active', x === b)); movePill($('#qualSeg')); setQuality(b.dataset.q); }); });
   const sw = $('#swSpin'); sw.setAttribute('aria-checked', String(autoSpin));
   sw.addEventListener('click', () => { autoSpin = !autoSpin; sw.setAttribute('aria-checked', String(autoSpin)); store.set('spin', autoSpin); });
@@ -5346,6 +5495,7 @@ function frame() {
   const now = performance.now(), dt = Math.min((now - lastNow) / 1000, 0.05); lastNow = now;
   const cpu0 = now;
   state.t += dt;
+  if (started) pollGamepad(dt);
   const t = state.t;
   U.time.value = t;
 
@@ -5442,6 +5592,7 @@ async function init() {
       buildPost();
       setupUI();
       setupFPInput();
+      setupGamepad();
       sampleEnv(state.hour, 0); applyEnv(ENV, 0); updateEnvironment(state.hour, 0, 0, true);
     }],
   ];
@@ -5468,7 +5619,7 @@ init().catch((err) => {
 });
 
 // handy for tinkering from the browser console
-window.__island = { MARINE, CLOUDS, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph, FP, COLL, groundAt, fpInteract, nearestInteraction, enterFP, exitFP, BOATS, PEOPLE, takeBoat, boardRide, useSpot, coastPoint, hAt, waterAt, updateFP, updateBoats, U, updateCamera, nextFollow, get camMode() { return camMode; }, greet, leaveRide, standUp, ARMS };
+window.__island = { MARINE, CLOUDS, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph, FP, COLL, groundAt, fpInteract, nearestInteraction, enterFP, exitFP, BOATS, PEOPLE, takeBoat, boardRide, useSpot, coastPoint, hAt, waterAt, updateFP, updateBoats, U, updateCamera, nextFollow, get camMode() { return camMode; }, greet, leaveRide, standUp, ARMS, PAD, pollGamepad, get camModeNow() { return camMode; } };
 
 </script>
 </body>
