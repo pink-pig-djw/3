@@ -181,6 +181,45 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .loader-wave { margin: 22px auto 0; width: 120px; height: 14px; color: rgba(255, 246, 232, 0.7); }
 .err { margin-top: 14px; font-size: 13px; color: #fff; max-width: 420px; line-height: 1.6; }
 
+/* ---------- first-person HUD ---------- */
+#app.fp .dock, #app.fp #hint, #app.fp #followTag, #app.fp #settings { display: none; }
+#app.fp.locked .top { opacity: .75; }
+#fpHud { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
+.fp-cross { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255, 248, 236, 0.85); box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35); }
+.fp-bar { z-index: 2; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 16px); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 5px 5px 5px 16px; border-radius: var(--r-pill); font-size: 13px; color: var(--ink); white-space: nowrap; pointer-events: auto; }
+.fp-exit { border-radius: var(--r-pill); padding: 6px 12px; font-size: 12.5px; color: var(--ink); background: rgba(255, 255, 255, 0.1); }
+.fp-exit:hover { background: rgba(255, 255, 255, 0.2); }
+.fp-toast { z-index: 2; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 66px); left: 50%; transform: translateX(-50%); max-width: min(560px, calc(100vw - 32px)); padding: 10px 16px; border-radius: 14px; font-size: 14px; line-height: 1.55; text-align: center; }
+.fp-prompt { position: absolute; left: 50%; top: calc(50% + 34px); transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: var(--r-pill); background: rgba(10, 18, 20, 0.55); font-size: 14px; white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+.fp-prompt kbd, .fp-keys kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 6px; background: var(--sun); color: var(--sun-ink); font: 600 12px var(--font-ui); }
+.fp-map { position: absolute; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); width: 168px; height: 168px; border-radius: 50%; border: 1px solid var(--rim); background: rgba(13, 24, 28, 0.55); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); }
+.fp-start { z-index: 1; position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(8, 14, 16, 0.35); pointer-events: auto; cursor: pointer; }
+.fp-start[hidden] { display: none; }
+.fp-card { max-width: 440px; padding: 22px 24px; border-radius: var(--r-panel); cursor: default; }
+.fp-card h2 { margin: 0 0 6px; font-family: var(--font-cn); font-size: 22px; font-weight: 600; }
+.fp-card p { margin: 0 0 14px; color: var(--ink-dim); line-height: 1.6; }
+.fp-keys { list-style: none; margin: 0 0 18px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; font-size: 13px; color: var(--ink-dim); }
+.fp-keys li { display: flex; align-items: center; gap: 4px; }
+.fp-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.fp-go { flex: 1; border-radius: var(--r-pill); padding: 10px 18px; background: var(--sun); color: var(--sun-ink); font-weight: 600; }
+.fp-back { border-radius: var(--r-pill); padding: 10px 16px; background: rgba(255, 255, 255, 0.1); color: var(--ink); }
+#fpTouch { position: absolute; inset: 0; pointer-events: auto; touch-action: none; }
+#fpTouch[hidden] { display: none; }
+.fp-stick { position: absolute; left: 40px; bottom: calc(env(safe-area-inset-bottom, 0px) + 50px); width: 110px; height: 110px; border-radius: 50%; border: 1.5px solid rgba(255, 248, 236, 0.35); background: rgba(10, 18, 20, 0.25); opacity: .55; transition: opacity .2s; }
+.fp-stick.on { opacity: 1; }
+.fp-stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255, 248, 236, 0.75); }
+.fp-btns { position: absolute; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 36px); display: grid; grid-template-columns: auto auto; gap: 10px; }
+.fp-btns button { min-width: 64px; height: 52px; padding: 0 12px; border-radius: 18px; background: rgba(10, 18, 20, 0.5); border: 1px solid var(--rim); color: var(--ink); font-size: 13px; }
+.fp-btns button.big { background: var(--sun); color: var(--sun-ink); font-weight: 600; }
+.fp-btns button[aria-pressed="true"] { background: var(--lagoon); color: #08302b; }
+.fp-fade { position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity 1.2s ease; }
+.fp-fade.on { opacity: 1; }
+@media (pointer: coarse) {
+  .fp-map { right: auto; left: 12px; bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 112px); width: 112px; height: 112px; }
+  .fp-bar { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 180px); }
+  .fp-prompt { top: calc(50% + 28px); }
+}
+
 /* ---------- narrow screens ---------- */
 @media (max-width: 720px) {
   .dock { padding: 10px; border-radius: 20px; }
@@ -275,6 +314,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
         <button data-cam="orbit" class="active" title="自由环绕（1）">环绕</button>
         <button data-cam="follow" title="跟随（2）">跟随</button>
         <button data-cam="tour" title="自动巡游（3）">巡游</button>
+        <button data-cam="fp" title="第一人称漫游（4）">漫游</button>
       </div>
       <button class="toggle" id="btnNext" title="换一个跟随对象（N）" hidden>换一个</button>
       <button class="icon-btn" id="btnSettings" aria-pressed="false" title="画面与声音设置" aria-label="设置">
@@ -293,7 +333,50 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
       <div class="seg" id="qualSeg" role="group" aria-label="画质"><span class="pill"></span><button data-q="low">流畅</button><button data-q="medium">均衡</button><button data-q="high">精美</button></div>
     </div>
     <div class="field"><label id="lblSpin">环绕时自动缓转</label><button class="switch" id="swSpin" role="switch" aria-checked="true" aria-labelledby="lblSpin"></button></div>
-    <p class="keys"><kbd>空格</kbd> 时间　<kbd>R</kbd> 下雨　<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 相机　<kbd>N</kbd> 换人　<kbd>M</kbd> 声音　<kbd>H</kbd> 隐藏界面</p>
+    <p class="keys"><kbd>空格</kbd> 时间　<kbd>R</kbd> 下雨　<kbd>1</kbd>–<kbd>4</kbd> 相机　<kbd>N</kbd> 换人　<kbd>M</kbd> 声音　<kbd>H</kbd> 隐藏界面</p>
+  </div>
+
+  <!-- first-person HUD -->
+  <div id="fpHud" hidden>
+    <div class="fp-cross" aria-hidden="true"></div>
+    <div class="fp-bar glass">
+      <span id="fpStatus">沙滩</span>
+      <button class="fp-exit" id="fpExit" title="回到环绕视角（1）">退出漫游</button>
+    </div>
+    <div class="fp-toast glass" id="fpToast" role="status" aria-live="polite" hidden></div>
+    <div class="fp-prompt" id="fpPrompt" hidden><kbd>E</kbd><span id="fpPromptText"></span></div>
+    <canvas class="fp-map" id="fpMap" width="168" height="168" aria-label="小地图"></canvas>
+    <div class="fp-start" id="fpStart">
+      <div class="fp-card glass">
+        <h2>第一人称漫游</h2>
+        <p>沿着沙滩散步、下海潜水、划船出海，走进高脚屋和椰林小屋。</p>
+        <ul class="fp-keys">
+          <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</li>
+          <li><kbd>鼠标</kbd> 环顾</li>
+          <li><kbd>Shift</kbd> 跑 / 快游</li>
+          <li><kbd>空格</kbd> 跳 / 上浮</li>
+          <li><kbd>C</kbd> 下潜</li>
+          <li><kbd>E</kbd> 互动</li>
+          <li><kbd>T</kbd> 下一个时段</li>
+          <li><kbd>R</kbd> 下雨</li>
+          <li><kbd>Esc</kbd> 释放鼠标</li>
+        </ul>
+        <div class="fp-actions">
+          <button class="fp-go" id="fpGo">点击开始</button>
+          <button class="fp-back" id="fpBack">回到环绕视角</button>
+        </div>
+      </div>
+    </div>
+    <div id="fpTouch" hidden>
+      <div class="fp-stick" id="fpStick"><i></i></div>
+      <div class="fp-btns">
+        <button data-k="KeyE" class="big">互动</button>
+        <button data-k="Space">跳 / 上浮</button>
+        <button data-k="KeyC">下潜</button>
+        <button data-k="Run" aria-pressed="false">跑</button>
+      </div>
+    </div>
+    <div class="fp-fade" id="fpFade"></div>
   </div>
 
   <div class="hint hud" id="hint">拖动旋转 · 滚轮或双指缩放 · 右键平移</div>
@@ -1104,12 +1187,16 @@ function waveH(x, z, t) {
   return s * (0.75 + 0.6 * dk) + L * dk;
 }
 
-function makeWaterMaterial(waveAmp = 1) {
-  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0, transparent: true });
+U.under = { value: 0 }; U.fogCol = { value: new THREE.Color(0.02, 0.12, 0.14) };
+function makeWaterMaterial(waveAmp = 1, { rim = 1, opaque = 0 } = {}) {
+  // double-sided so that a diver looks up at the underside of the surface
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0, transparent: true, side: THREE.DoubleSide });
+  mat.customProgramCacheKey = () => 'water';
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, {
       uTime: U.time, uHeight: U.heightTex, uR: U.R, uNormTex: WATER.normTex, uShallow: WATER.shallow, uMid: WATER.mid, uDeep: WATER.deep,
       uSkyTop: U.skyTop, uSkyHorizon: U.skyHorizon, uRain: U.rain, uWaveAmp: { value: waveAmp }, uWindK: U.wind, uNightW: U.night, uEnvOn: U.envOn,
+      uRimOn: { value: rim }, uOpaque: { value: opaque }, uFogCol: U.fogCol,
     });
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
@@ -1127,6 +1214,7 @@ ${WAVE_GLSL}`)
 uniform float uTime; uniform sampler2D uHeight; uniform float uR; uniform sampler2D uNormTex;
 uniform vec3 uShallow; uniform vec3 uMid; uniform vec3 uDeep; uniform vec3 uSkyTop; uniform vec3 uSkyHorizon;
 uniform float uRain; uniform float uWaveAmp; uniform float uWindK; uniform float uNightW; uniform float uEnvOn;
+uniform float uRimOn; uniform float uOpaque; uniform vec3 uFogCol;
 varying vec3 vWPos;
 ${GLSL_NOISE}
 ${WAVE_GLSL}
@@ -1174,7 +1262,7 @@ float wFoam, wGlow, wDist; vec3 wN;`)
   float nf = nA.z, nf2 = nB.z;
   float shore = 1.0 - smoothstep(0.0, 0.05 + 0.07 * nf, depth);
   float bands = smoothstep(0.72, 0.98, sin(depth * 11.0 + uTime * 1.4 + nf * 5.0)) * (1.0 - smoothstep(0.03, 0.42, depth)) * smoothstep(0.35, 0.65, nf2);
-  float rim = smoothstep(uR - 0.45, uR - 0.04, length(vWPos.xz));
+  float rim = smoothstep(uR - 0.45, uR - 0.04, length(vWPos.xz)) * uRimOn;
   // whitecaps on the open ocean when the wind picks up
   float caps = smoothstep(0.8, 0.95, nC.z * 0.6 + nB.z * 0.5) * smoothstep(0.45, 0.95, uWindK) * dk;
   float foamMask = clamp(shore * 0.9 + bands * 0.6 + caps * 0.8, 0.0, 1.0);
@@ -1201,12 +1289,25 @@ float wFoam, wGlow, wDist; vec3 wN;`)
   outgoingLight = mix(outgoingLight, skyC, fres * (1.0 - wFoam) * 0.85 * (1.0 - uEnvOn));   // without an environment map, fake the sky reflection
   outgoingLight += vec3(0.15, 0.75, 1.3) * wGlow * 1.6;
   diffuseColor.a = clamp(diffuseColor.a + fres * 0.6 * (1.0 - wFoam) + wGlow * 0.5, 0.0, 1.0);
+  diffuseColor.a = mix(diffuseColor.a, 1.0, uOpaque);
+  if (!gl_FrontFacing) {
+    // seen from below: Snell's window overhead, total internal reflection of the deep water outside it
+    float c = abs(dot(wN, V));
+    float win = smoothstep(0.6, 0.72, c);
+    vec3 skyU = mix(uSkyHorizon, uSkyTop, smoothstep(0.66, 1.0, c)) * 0.85;
+    vec3 deepU = uFogCol * 1.15;
+    outgoingLight = mix(deepU, skyU, win) + vec3(0.9, 0.97, 1.0) * wFoam * 0.25 * (uSkyHorizon.g + 0.05);
+    outgoingLight += vec3(0.6, 0.9, 1.0) * pow(win * (1.0 - smoothstep(0.72, 0.75, c)), 2.0) * 0.12 * uSkyHorizon.g;
+    diffuseColor.a = mix(1.0, 0.9, win);
+  }
 }
 #include <opaque_fragment>`);
   };
   return mat;
 }
 
+let OCEAN_RING = null, ABYSS = null;
+const BASE_OBJS = [];
 function buildWater() {
   WATER.normTex.value = buildWaterNormalTexture();
   const g = discGrid(IS_TOUCH ? 120 : 170, R - 0.03, 1.3);
@@ -1221,6 +1322,16 @@ function buildWater() {
   pool.position.set(POOL.x, POOL_LEVEL, POOL.z);
   pool.receiveShadow = true; pool.renderOrder = 2;
   scene.add(pool);
+
+  // first-person only: the ocean runs on to the horizon over a deep sandy floor
+  const rg = xf(new THREE.RingGeometry(R - 0.03, 1800, 160, 6), { r: [-Math.PI / 2, 0, 0] });
+  OCEAN_RING = new THREE.Mesh(rg, makeWaterMaterial(0, { rim: 0, opaque: 1 }));
+  OCEAN_RING.renderOrder = 2; OCEAN_RING.visible = false; OCEAN_RING.frustumCulled = false;
+  scene.add(OCEAN_RING);
+  const fg = xf(new THREE.RingGeometry(R - 0.6, 900, 120, 4), { r: [-Math.PI / 2, 0, 0] });
+  ABYSS = new THREE.Mesh(fg, submerge(new THREE.MeshStandardMaterial({ color: '#b9a57e', roughness: 1 })));
+  ABYSS.position.y = FLOOR - 0.04; ABYSS.visible = false; ABYSS.receiveShadow = true;
+  scene.add(ABYSS);
   return sea;
 }
 
@@ -1421,6 +1532,7 @@ function buildBase() {
   plaque.position.set(Math.sin(pa) * (R + 1.95), top0 - 2.7, Math.cos(pa) * (R + 1.95));
   plaque.rotation.y = pa;
   scene.add(plaque);
+  BASE_OBJS.push(wall, soil, plinth, inlay, plaque);
   return { plaqueTex };
 }
 
@@ -1432,10 +1544,10 @@ let sky, hemi, sunLight, envSky = null, envScene = null, pmrem = null, envRT = n
 function skyMaterial(env) {
   return new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, depthTest: false,
-    uniforms: { uTop: U.skyTop, uHorizon: U.skyHorizon, uBottom: U.skyBottom, uSunDir: U.sunDir, uMoonDir: U.moonDir, uGlow: U.glowCol, uSunVis: U.sunVis, uMoonVis: U.moonVis, uStars: env ? { value: 0 } : U.stars, uTime: U.time, uDisc: { value: env ? 0 : 1 }, uGround: U.groundCol, uEnv: { value: env ? 1 : 0 } },
+    uniforms: { uTop: U.skyTop, uHorizon: U.skyHorizon, uBottom: U.skyBottom, uSunDir: U.sunDir, uMoonDir: U.moonDir, uGlow: U.glowCol, uSunVis: U.sunVis, uMoonVis: U.moonVis, uStars: env ? { value: 0 } : U.stars, uTime: U.time, uDisc: { value: env ? 0 : 1 }, uGround: U.groundCol, uEnv: { value: env ? 1 : 0 }, uUnder: env ? { value: 0 } : U.under, uFogCol: U.fogCol },
     vertexShader: `varying vec3 vDir; void main(){ vDir = position; vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = p.xyww; }`,
     fragmentShader: /* glsl */`
-      uniform vec3 uTop, uHorizon, uBottom, uSunDir, uMoonDir, uGlow; uniform float uSunVis, uMoonVis, uStars, uTime, uDisc, uEnv; uniform vec3 uGround;
+      uniform vec3 uTop, uHorizon, uBottom, uSunDir, uMoonDir, uGlow; uniform float uSunVis, uMoonVis, uStars, uTime, uDisc, uEnv, uUnder; uniform vec3 uGround, uFogCol;
       varying vec3 vDir;
       ${GLSL_NOISE}
       void main(){
@@ -1461,7 +1573,7 @@ function skyMaterial(env) {
         // milky haze band
         float band = exp(-pow(dot(d, normalize(vec3(0.3, 0.55, -0.78))) * 3.2, 2.0));
         col += vec3(0.32, 0.36, 0.55) * band * vfbm(d.xz * 6.0 + d.y * 3.0) * 0.12 * uStars;
-        gl_FragColor = vec4(col, 1.0);
+        gl_FragColor = vec4(mix(col, uFogCol, uUnder), 1.0);
       }`,
   });
 }
@@ -1741,7 +1853,7 @@ function buildPalms() {
     mesh.castShadow = true; mesh.receiveShadow = true; mesh.customDepthMaterial = depth;
     scene.add(mesh);
   }
-  for (const p of items) { PALMS.push(p); block(p.x, p.z, 0.7); }
+  for (const p of items) { PALMS.push(p); block(p.x, p.z, 0.7); cCircle(p.x, p.z, 0.3 * p.s, p.y - 1, p.y + 9); }
 }
 
 // =====================================================================
@@ -1981,16 +2093,130 @@ const MAT = {
   cloth: weather(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, side: THREE.DoubleSide }), 0.6, 0.18),
   glow: new THREE.MeshStandardMaterial({ color: '#334049', emissive: '#ffb257', emissiveIntensity: 0, roughness: 0.22, metalness: 0.1 }),
   bulb: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+  // window glass seen from indoors: bright with daylight, dark at night
+  pane: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.12, metalness: 0, emissive: '#ffffff', emissiveIntensity: 0 }),
 };
-const BUILD = { wood: [], thatch: [], plain: [], cloth: [], glow: [] };
+const BUILD = { wood: [], thatch: [], plain: [], cloth: [], glow: [], pane: [] };
 const LIGHTS = [];          // warm point lights that come on at dusk
 const GLOW_SPOTS = [];      // positions of lanterns (for bokeh & reflections)
 const BULBS = [];           // string-light bulbs {x,y,z,c}
 const FLAMES = [];          // {x,y,z,s}
 const DECK_Y = 1.1;
 
+// ---- first-person world data: what blocks you, what you can stand on, what you can use ----
+const COLL = { circles: [], segs: [], floors: [], doors: [], spots: [] };
+function toWorld(M, x, y, z) { return new THREE.Vector3(x, y, z).applyMatrix4(M); }
+function cCircle(x, z, r, y0 = -99, y1 = 99) { COLL.circles.push({ x, z, r, y0, y1 }); }
+function cSeg(M, ax, az, bx, bz, ly0, ly1) {
+  const a = toWorld(M, ax, ly0, az), b = toWorld(M, bx, ly1, bz);
+  const s = { ax: a.x, az: a.z, bx: b.x, bz: b.z, y0: a.y, y1: b.y, on: true };
+  COLL.segs.push(s); return s;
+}
+function cBox(M, x0, x1, z0, z1, ly0, ly1) { cSeg(M, x0, z0, x1, z0, ly0, ly1); cSeg(M, x1, z0, x1, z1, ly0, ly1); cSeg(M, x1, z1, x0, z1, ly0, ly1); cSeg(M, x0, z1, x0, z0, ly0, ly1); }
+// a level rectangle in a frame's local space
+function floorRect(M, x0, x1, z0, z1, ly, surf = 'wood') {
+  const f = M.f, c = Math.cos(f.rot), sn = Math.sin(f.rot), y = f.y + ly;
+  const r = Math.hypot(Math.max(Math.abs(x0), Math.abs(x1)), Math.max(Math.abs(z0), Math.abs(z1)));
+  COLL.floors.push({ surf, x: f.x, z: f.z, r, heightAt(wx, wz) {
+    const dx = wx - f.x, dz = wz - f.z, lx = dx * c - dz * sn, lz = dx * sn + dz * c;
+    return lx >= x0 && lx <= x1 && lz >= z0 && lz <= z1 ? y : null;
+  } });
+}
+// a deck that follows a polyline (boardwalks, docks)
+function floorPath(pts, halfW, y, surf = 'wood') {
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (const p of pts) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
+  COLL.floors.push({ surf, x: (x0 + x1) / 2, z: (z0 + z1) / 2, r: Math.hypot(x1 - x0, z1 - z0) / 2 + halfW, heightAt(wx, wz) {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1], ex = b.x - a.x, ez = b.z - a.z, l2 = ex * ex + ez * ez || 1;
+      const t = clamp(((wx - a.x) * ex + (wz - a.z) * ez) / l2, 0, 1), px = a.x + ex * t - wx, pz = a.z + ez * t - wz;
+      if (px * px + pz * pz <= halfW * halfW) return y;
+    }
+    return null;
+  } });
+}
+function addSpot(o) { COLL.spots.push(o); return o; }
+
+// Walls with door openings, built as separate slabs so the room is hollow and enterable.
+// open: { back|front|left|right: [from, to, height] } in the wall's own axis
+function hollowRoom(M, { x0, x1, z0, z1, h, tone, open = {}, bucket = 'wood', t = 0.1 }) {
+  const side = (name, u0, u1, line, alongX) => {
+    const o = open[name], pieces = o ? [[u0, o[0], 0, h], [o[1], u1, 0, h], [o[0], o[1], o[2], h]] : [[u0, u1, 0, h]];
+    for (const [a, b, ya, yb] of pieces) {
+      if (b - a < 0.02 || yb - ya < 0.02) continue;
+      const mid = (a + b) / 2, len = b - a, hh = yb - ya;
+      if (alongX) placed(woodBox(len, hh, t, 0.75), tone, { p: [mid, ya + hh / 2, line] }, M, bucket);
+      else placed(woodBox(t, hh, len, 0.75), tone, { p: [line, ya + hh / 2, mid] }, M, bucket);
+      if (ya < 0.1) { if (alongX) cSeg(M, a, line, b, line, 0, h); else cSeg(M, line, a, line, b, 0, h); }
+    }
+  };
+  side('back', x0, x1, z0, true); side('front', x0, x1, z1, true); side('left', z0, z1, x0, false); side('right', z0, z1, x1, false);
+}
+// A hinged door; E toggles it. Closed doors block like walls.
+function addDoor(M, hx, hz, w, h, alongX, swing, color) {
+  const g = woodBox(w, h, 0.06, 1); g.translate(w / 2, h / 2, 0);
+  const mesh = new THREE.Mesh(paint(g, color), MAT.plain);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  const pivot = new THREE.Group();
+  pivot.position.copy(toWorld(M, hx, 0.005, hz));
+  const base = M.f.rot + (alongX ? 0 : -Math.PI / 2);
+  pivot.rotation.y = base; pivot.add(mesh); scene.add(pivot);
+  // handle
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), new THREE.MeshStandardMaterial({ color: '#b08d57', metalness: 0.8, roughness: 0.35 }));
+  knob.position.set(w - 0.1, h * 0.5, 0.05); mesh.add(knob);
+  const seg = alongX ? cSeg(M, hx, hz, hx + w, hz, 0, h) : cSeg(M, hx, hz, hx, hz + w, 0, h);
+  const door = { pivot, base, swing, open: 0, target: 0, seg, w, pos: toWorld(M, alongX ? hx + w / 2 : hx, 1.0, alongX ? hz : hz + w / 2) };
+  COLL.doors.push(door);
+  addSpot({ kind: 'door', door, pos: door.pos, r: 1.7, label: () => (door.target ? '关门' : '开门') });
+  return door;
+}
+// Simple furniture shared by the bungalows and cottages
+function bedAt(M, x, z, rotY, blanket) {
+  const F = new THREE.Matrix4().multiplyMatrices(M, new THREE.Matrix4().compose(new THREE.Vector3(x, 0, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rotY, 0)), new THREE.Vector3(1, 1, 1)));
+  placed(woodBox(1.05, 0.3, 1.95), '#7a5434', { p: [0, 0.15, 0] }, F, 'wood');
+  placed(woodBox(1.05, 0.62, 0.08), '#6b4a2f', { p: [0, 0.31, -0.98] }, F, 'wood');
+  placed(new THREE.BoxGeometry(0.98, 0.16, 1.86), '#ede7da', { p: [0, 0.38, 0.0] }, F, 'cloth');
+  placed(new THREE.BoxGeometry(1.0, 0.07, 1.1), blanket, { p: [0, 0.48, 0.38] }, F, 'cloth');
+  for (const s of [-0.24, 0.24]) placed(new THREE.BoxGeometry(0.4, 0.1, 0.26), '#f4f1ea', { p: [s, 0.51, -0.75] }, F, 'cloth');
+  const c = toWorld(F, 0, 0.5, 0);
+  // the bed is solid (knee height)
+  const W = 0.55, L = 1.0;
+  cSeg(F, -W, -L, W, -L, 0, 0.55); cSeg(F, W, -L, W, L, 0, 0.55); cSeg(F, W, L, -W, L, 0, 0.55); cSeg(F, -W, L, -W, -L, 0, 0.55);
+  addSpot({ kind: 'bed', pos: c, r: 1.6, label: () => '睡一觉' });
+  return c;
+}
+function tableAt(M, x, z, chairs = 2) {
+  placed(woodBox(0.8, 0.05, 0.6), '#9a7350', { p: [x, 0.72, z] }, M, 'wood');
+  for (const [dx, dz] of [[-0.34, -0.24], [0.34, -0.24], [-0.34, 0.24], [0.34, 0.24]]) placed(woodBox(0.05, 0.7, 0.05), '#7a5434', { p: [x + dx, 0.35, z + dz] }, M, 'wood');
+  placed(new THREE.CylinderGeometry(0.06, 0.05, 0.12, 8), '#d7d2c4', { p: [x + 0.15, 0.81, z - 0.05] }, M, 'plain');
+  placed(new THREE.BoxGeometry(0.22, 0.03, 0.3), '#e9e1cf', { p: [x - 0.15, 0.76, z + 0.05], r: [0, 0.3, 0] }, M, 'cloth');
+  const w = toWorld(M, x, 0, z); cCircle(w.x, w.z, 0.42, w.y, w.y + 0.8);
+  for (let k = 0; k < chairs; k++) {
+    const cz = z + (k ? 0.52 : -0.52), back = k ? 0.2 : -0.2;
+    placed(woodBox(0.42, 0.04, 0.42), '#8a6644', { p: [x, 0.45, cz] }, M, 'wood');
+    placed(woodBox(0.42, 0.45, 0.04), '#8a6644', { p: [x, 0.68, cz + back] }, M, 'wood');
+    for (const [dx, dz] of [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]]) placed(woodBox(0.04, 0.45, 0.04), '#6b4a2f', { p: [x + dx, 0.225, cz + dz] }, M, 'wood');
+    const seat = toWorld(M, x, 0.45, cz);
+    addSpot({ kind: 'sit', pos: seat, r: 1.2, yaw: Math.atan2(-(toWorld(M, x, 0, z).x - seat.x), -(toWorld(M, x, 0, z).z - seat.z)), label: () => '坐下' });
+  }
+}
+function shelfAt(M, x, z, alongX) {
+  const sx = alongX ? 0.9 : 0.28, sz = alongX ? 0.28 : 0.9;
+  placed(woodBox(sx, 1.25, sz), '#7a5434', { p: [x, 0.625, z] }, M, 'wood');
+  for (let k = 0; k < 3; k++) for (let i = 0; i < 4; i++) {
+    const off = -0.3 + i * 0.2, y = 0.35 + k * 0.38;
+    placed(new THREE.BoxGeometry(alongX ? 0.06 : 0.14, 0.2 + 0.06 * ((i + k) % 3), alongX ? 0.14 : 0.06), pick(['#7d4b3a', '#3f5a6b', '#b49a5a', '#5f6e4a', '#8a3f3f']), { p: [x + (alongX ? off : 0), y, z + (alongX ? 0 : off)] }, M, 'plain');
+  }
+  cBox(M, x - sx / 2, x + sx / 2, z - sz / 2, z + sz / 2, 0, 1.3);
+}
+function lampAt(M, x, z, y = 0.5) {
+  placed(new THREE.CylinderGeometry(0.05, 0.07, 0.3, 8), '#3b2f25', { p: [x, y + 0.15, z] }, M, 'plain');
+  placed(new THREE.CylinderGeometry(0.1, 0.16, 0.18, 10, 1, true), '#e8dcc0', { p: [x, y + 0.38, z] }, M, 'cloth');
+  BUILD.glow.push(part(new THREE.SphereGeometry(0.06, 8, 6), '#ffffff', { p: toWorld(M, x, y + 0.36, z).toArray() }));
+}
+
 function placed(geo, color, local, M, bucket) { const g = part(geo, color, local); g.applyMatrix4(M); BUILD[bucket].push(g); return g; }
-function frameAt(x, y, z, rotY) { return new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rotY, 0)), new THREE.Vector3(1, 1, 1)); }
+function frameAt(x, y, z, rotY) { const M = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rotY, 0)), new THREE.Vector3(1, 1, 1)); M.f = { x, y, z, rot: rotY }; return M; }
 function addLight(x, y, z, color, intensity, distance, flicker = 0) {
   const l = new THREE.PointLight(color, 0, distance, 2);
   l.position.set(x, y, z); scene.add(l);
@@ -2047,6 +2273,7 @@ function walkway(pts, { width = 1.7, deckY = DECK_Y, postEvery = 1.7, lamps = 0,
     if (prevTop) stringLights(prevTop, top, 0.28);
     prevTop = top;
   });
+  floorPath(curve.getSpacedPoints(Math.max(4, Math.ceil(L / 0.8))), width / 2 + 0.05, deckY);
   return curve;
 }
 
@@ -2061,17 +2288,22 @@ function bungalow(x, z, rotY, { accent = '#2f8f87', deckLight = true, stilts = 3
   placed(woodBox(5.7, 0.18, 5.1, 0.9), '#d9b48c', { p: [0, -0.09, 0.05] }, M, W);
   placed(woodBox(5.9, 0.16, 0.22, 1), '#9a7350', { p: [0, -0.24, 2.55] }, M, W);
   placed(woodBox(5.9, 0.16, 0.22, 1), '#9a7350', { p: [0, -0.24, -2.45] }, M, W);
-  // walls
-  placed(woodBox(3.8, 2.25, 2.6, 0.75), wallTone, { p: [0, 1.125, -0.3] }, M, W);
+  // hollow walls: a door on the walkway side, an open doorway onto the porch
+  hollowRoom(M, { x0: -1.9, x1: 1.9, z0: -1.6, z1: 1.0, h: 2.25, tone: wallTone, open: { back: [-0.62, 0.24, 1.82], front: [-0.15, 1.25, 1.88] } });
+  placed(woodBox(3.7, 0.06, 2.5, 0.9), '#cfa37a', { p: [0, 0.03, -0.3] }, M, W);            // interior floorboards
+  placed(woodBox(3.85, 0.08, 2.55, 0.8), '#c9a982', { p: [0, 2.22, -0.3] }, M, W);          // ceiling
+  for (let k = 0; k < 4; k++) placed(woodBox(0.1, 0.12, 2.6), '#6b4a2f', { p: [-1.4 + k * 0.93, 2.13, -0.3] }, M, W);   // beams
   for (const [cx, cz] of [[-1.9, -1.6], [1.9, -1.6], [-1.9, 1.0], [1.9, 1.0]]) placed(woodBox(0.2, 2.3, 0.2), '#7a5434', { p: [cx, 1.15, cz] }, M, W);
   placed(woodBox(3.95, 0.14, 2.75), '#7a5434', { p: [0, 2.28, -0.3] }, M, W);
-  // door (back, towards the walkway) and porch door (front)
-  placed(woodBox(0.85, 1.75, 0.08), accent, { p: [-0.7, 0.875, -1.63] }, M, P);
-  placed(woodBox(1.4, 1.8, 0.08), '#6b4a2f', { p: [0.55, 0.9, 1.02] }, M, W);
-  placed(new THREE.BoxGeometry(1.2, 1.6, 0.04), '#ffffff', { p: [0.55, 0.92, 1.05] }, M, 'glow');
-  // windows
-  for (const [wx, wz, ry] of [[-1.92, -0.3, Math.PI / 2], [1.92, -0.3, Math.PI / 2], [-1.0, 1.02, 0], [0.8, -1.63, 0]]) {
+  // door (back, towards the walkway) and the frame of the open porch doorway
+  addDoor(M, -0.62, -1.6, 0.86, 1.8, true, -1, accent);
+  for (const fx of [-0.18, 1.28]) placed(woodBox(0.08, 1.9, 0.14), '#6b4a2f', { p: [fx, 0.95, 1.0] }, M, W);
+  placed(woodBox(1.52, 0.1, 0.14), '#6b4a2f', { p: [0.55, 1.9, 1.0] }, M, W);
+  // windows (glowing glass outside, dark glass inside)
+  for (const [wx, wz, ry] of [[-1.92, -0.3, Math.PI / 2], [1.92, -0.3, Math.PI / 2], [-1.0, 1.02, 0], [1.15, -1.63, 0]]) {
     placed(new THREE.BoxGeometry(0.85, 0.7, 0.05), '#ffffff', { p: [wx, 1.3, wz], r: [0, ry, 0] }, M, 'glow');
+    const ix = ry ? wx - Math.sign(wx) * 0.08 : wx, iz = ry ? wz : wz - Math.sign(wz) * 0.08;
+    placed(new THREE.BoxGeometry(0.85, 0.7, 0.02), '#2c3a44', { p: [ix, 1.3, iz], r: [0, ry, 0] }, M, 'pane');
     placed(woodBox(1.05, 0.1, 0.12), '#6b4a2f', { p: [wx, 0.92, wz], r: [0, ry, 0] }, M, W);
     placed(woodBox(1.05, 0.1, 0.12), '#6b4a2f', { p: [wx, 1.68, wz], r: [0, ry, 0] }, M, W);
     // shutters
@@ -2114,18 +2346,36 @@ function bungalow(x, z, rotY, { accent = '#2f8f87', deckLight = true, stilts = 3
   if (deckLight) addLight(lp.x, lp.y, lp.z, '#ffb867', 20, 13);
   // towel on the railing
   placed(new THREE.BoxGeometry(0.6, 0.5, 0.03), pick(['#ff7f6e', '#ffd166', '#7fd1c7']), { p: [-1.6, 0.6, 2.58] }, M, 'cloth');
+  // inside: bed against the left wall, table and chairs, a shelf, a reading lamp, a rug
+  bedAt(M, -1.33, -0.35, 0, pick(['#6f8fa0', '#9a7b5f', '#7d8f6a']));
+  placed(woodBox(0.4, 0.45, 0.4), '#7a5434', { p: [-1.62, 0.225, 0.74] }, M, W);
+  lampAt(M, -1.62, 0.74, 0.45);
+  tableAt(M, 1.05, -0.75, 2);
+  shelfAt(M, 1.7, 0.45, false);
+  placed(new THREE.BoxGeometry(1.4, 0.012, 0.95), '#9b5a43', { p: [0.15, 0.065, 0.2] }, M, 'cloth');
+  // walking surfaces, railings, the ladder and the loungers
+  floorRect(M, -2.85, 2.85, -2.5, 2.62, 0.0);
+  cSeg(M, -2.75, 2.55, 1.6, 2.55, 0, 0.85); cSeg(M, -2.75, 2.55, -2.75, 1.1, 0, 0.85); cSeg(M, 2.75, 2.55, 2.75, 1.1, 0, 0.85);
+  for (const [px, pz] of [[-2.55, -2.3], [2.55, -2.3], [-2.55, 0.1], [2.55, 0.1], [-2.55, 2.35], [2.55, 2.35], [0, 2.35], [0, -2.3]]) { const w = toWorld(M, px, 0, pz); cCircle(w.x, w.z, 0.18, -20, w.y - 0.1); }
+  addSpot({ kind: 'ladder', pos: toWorld(M, 2.2, -0.6, 3.0), top: toWorld(M, 2.2, 0, 2.15), r: 1.8, label: () => '顺着梯子爬上平台' });
+  const loungers = [];
+  for (const sg of [-1, 1]) loungers.push(addSpot({ kind: 'sit', lie: true, pos: toWorld(M, sg * 1.2 - 0.2, 0.36, 1.8), yaw: rotY + Math.PI, r: 1.3, label: () => '躺下晒太阳' }));
   block(x, z, 3.8);
+  return { M, loungers };
 }
 
 function smallHut(x, z, rotY, accent, roofTone = '#ffffff') {
   const y = groundHeight(x, z) + 0.55, M = frameAt(x, y, z, rotY);
   for (const [px, pz] of [[-1.5, -1.3], [1.5, -1.3], [-1.5, 1.3], [1.5, 1.3]]) placed(new THREE.CylinderGeometry(0.11, 0.13, 1.4, 6), '#7d5a3a', { p: [px, -0.35, pz] }, M, 'wood');
   placed(woodBox(3.4, 0.14, 3.0, 0.9), '#d2aa82', { p: [0, 0.0, 0.1] }, M, 'wood');
-  placed(woodBox(2.6, 1.9, 2.2, 0.75), '#f4dcb6', { p: [0, 0.95, -0.15] }, M, 'wood');
+  hollowRoom(M, { x0: -1.3, x1: 1.3, z0: -1.25, z1: 0.95, h: 1.9, tone: '#f4dcb6', open: { front: [-0.875, -0.125, 1.55] } });
+  placed(woodBox(2.65, 0.06, 2.25, 0.8), '#c9a982', { p: [0, 1.87, -0.15] }, M, 'wood');
   for (const [cx, cz] of [[-1.3, -1.25], [1.3, -1.25], [-1.3, 0.95], [1.3, 0.95]]) placed(woodBox(0.16, 1.95, 0.16), '#6f4c2f', { p: [cx, 0.97, cz] }, M, 'wood');
-  placed(woodBox(0.75, 1.5, 0.08), accent, { p: [-0.5, 0.75, 0.97] }, M, 'plain');
-  placed(new THREE.BoxGeometry(0.7, 0.6, 0.05), '#ffffff', { p: [0.55, 1.1, 0.97] }, M, 'glow');
-  placed(new THREE.BoxGeometry(0.05, 0.6, 0.7), '#ffffff', { p: [1.32, 1.1, -0.15] }, M, 'glow');
+  addDoor(M, -0.875, 0.95, 0.75, 1.52, true, 1, accent);
+  placed(new THREE.BoxGeometry(0.7, 0.6, 0.05), '#ffffff', { p: [0.55, 1.1, 1.01] }, M, 'glow');
+  placed(new THREE.BoxGeometry(0.05, 0.6, 0.7), '#ffffff', { p: [1.36, 1.1, -0.15] }, M, 'glow');
+  placed(new THREE.BoxGeometry(0.7, 0.6, 0.02), '#2c3a44', { p: [0.55, 1.1, 0.89] }, M, 'pane');
+  placed(new THREE.BoxGeometry(0.02, 0.6, 0.7), '#2c3a44', { p: [1.24, 1.1, -0.15] }, M, 'pane');
   placed(new THREE.ConeGeometry(2.6, 2.1, 4, 1, true), roofTone, { p: [0, 2.85, -0.1], r: [0, Math.PI / 4, 0], s: [1, 1, 0.9] }, M, 'thatch');
   placed(new THREE.ConeGeometry(0.25, 0.4, 4), '#6e4c2c', { p: [0, 3.95, -0.1], r: [0, Math.PI / 4, 0] }, M, 'plain');
   // steps
@@ -2135,6 +2385,16 @@ function smallHut(x, z, rotY, accent, roofTone = '#ffffff') {
   placed(new THREE.CylinderGeometry(0.18, 0.13, 0.3, 8), '#c96f4a', { p: [-1.35, 0.22, 1.35] }, M, 'plain');
   placed(new THREE.IcosahedronGeometry(0.3, 0), '#4f8a39', { p: [-1.35, 0.55, 1.35] }, M, 'plain');
   GLOW_SPOTS.push(new THREE.Vector3(0.55, 1.1, 0.97).applyMatrix4(M));
+  // inside
+  bedAt(M, -0.3, -0.62, Math.PI / 2, pick(['#8a6f5a', '#5f7a8a', '#7a8a5f']));
+  tableAt(M, 0.85, 0.3, 1);
+  lampAt(M, 1.05, -0.95, 0.0);
+  placed(new THREE.BoxGeometry(1.1, 0.012, 0.7), '#8f5b44', { p: [-0.4, 0.075, 0.45] }, M, 'cloth');
+  // floors, steps and the porch bench
+  floorRect(M, -1.7, 1.7, -1.4, 1.6, 0.07);
+  for (let k = 0; k < 3; k++) floorRect(M, -0.95, -0.05, 1.6 + k * 0.28, 1.88 + k * 0.28, -0.11 - k * 0.2);
+  for (const [px, pz] of [[-1.5, -1.3], [1.5, -1.3], [-1.5, 1.3], [1.5, 1.3]]) { const w = toWorld(M, px, 0, pz); cCircle(w.x, w.z, 0.16, -20, w.y - 0.1); }
+  addSpot({ kind: 'sit', pos: toWorld(M, 0.7, 0.5, 1.25), yaw: rotY + Math.PI, r: 1.3, label: () => '坐在门廊' });
   block(x, z, 2.8);
 }
 
@@ -2159,6 +2419,9 @@ function campfire() {
     BUILD.wood.push(part(new THREE.CylinderGeometry(0.2, 0.22, 1.5, 8), '#7a5634', { p: [bx, by + 0.16, bz], r: [0, -a, Math.PI / 2] }));
     benches.push({ x: bx, y: by + 0.36, z: bz, face: Math.atan2(x - bx, z - bz) });
   }
+  cCircle(x, z, 0.75, y - 1, y + 0.6);
+  for (const b of benches) cCircle(b.x, b.z, 0.32, b.y - 0.6, b.y);
+  addSpot({ kind: 'fire', pos: new THREE.Vector3(x, y + 0.4, z), r: 2.6, label: () => '坐下烤火' });
   block(x, z, 2.8);
   // embers
   const N = 50, p = new Float32Array(N * 3), s = new Float32Array(N);
@@ -2223,6 +2486,11 @@ function beachBar() {
   const lp = new THREE.Vector3(0, 2.2, 0.6).applyMatrix4(M);
   addLight(lp.x, lp.y, lp.z, '#ffb867', 26, 14);
   GLOW_SPOTS.push(lp);
+  for (const [px, pz] of [[-1.7, -1.3], [1.7, -1.3], [-1.7, 1.3], [1.7, 1.3]]) { const w = toWorld(M, px, 0, pz); cCircle(w.x, w.z, 0.16); }
+  cSeg(M, -1.5, 1.0, 1.5, 1.0, 0, 1.2); cSeg(M, -1.5, 1.0, -1.5, 0.75, 0, 1.2); cSeg(M, 1.5, 1.0, 1.5, 0.75, 0, 1.2);
+  cSeg(M, -1.5, -1.25, 1.5, -1.25, 0, 2);
+  addSpot({ kind: 'bar', pos: toWorld(M, 0, 1.2, 1.6), r: 2.2, label: () => '买一个冰椰子' });
+  for (let k = 0; k < 3; k++) addSpot({ kind: 'sit', pos: toWorld(M, -1 + k, 0.75, 1.75), yaw: rot, r: 1.0, label: () => '坐在吧台' });
   block(x, z, 3.6);
   return { x, y, z, rot, M };
 }
@@ -2267,6 +2535,7 @@ function lighthouse() {
   placed(new THREE.BoxGeometry(1.6, 1.0, 1.2), '#fbf6ee', { p: [0, 0.5, 0] }, M, 'plain');
   placed(new THREE.ConeGeometry(1.25, 0.7, 4), '#d94e44', { p: [0, 1.35, 0], r: [0, Math.PI / 4, 0], s: [1.2, 1, 0.85] }, M, 'plain');
   placed(new THREE.BoxGeometry(0.4, 0.4, 0.04), '#ffffff', { p: [0.3, 0.55, 0.62] }, M, 'glow');
+  cCircle(x, z, 0.9); cBox(M, -0.8, 0.8, -0.6, 0.6, 0, 1.2);
   lighthouseLamp = new THREE.Vector3(x, y + 5.75, z);
   GLOW_SPOTS.push(lighthouseLamp.clone());
   // rotating beam
@@ -2318,6 +2587,10 @@ function footbridge() {
     BUILD.wood.push(paint(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rail), 16, 0.035, 4), '#9a7350'));
   }
   const bridge = { x: s.x, z: s.z, ax, az, y0, L, top: (u) => y0 + 0.35 * Math.cos(u * Math.PI) + 0.04 };
+  COLL.floors.push({ surf: 'wood', x: s.x, z: s.z, r: L, heightAt(wx, wz) {
+    const dx = wx - s.x, dz = wz - s.z, u = (dx * ax + dz * az) / L, w = Math.abs(-dx * az + dz * ax);
+    return Math.abs(u) < 0.52 && w < 0.66 ? bridge.top(clamp(u, -0.5, 0.5)) : null;
+  } });
   block(s.x, s.z, 2.0);
   return bridge;
 }
@@ -2386,13 +2659,15 @@ function buildStructures() {
   const b3 = { house: end.clone().addScaledVector(endTan, 3.55), sd: endTan.clone(), p: end };
   [[b1, '#2f8f87'], [b2, '#d9644a'], [b3, '#3f7cb0']].forEach(([b, accent], k) => {
     const rot = Math.atan2(b.sd.x, b.sd.z);
-    bungalow(b.house.x, b.house.z, rot, { accent, deckLight: true, wallTone: ['#f2d2a8', '#f6e0bf', '#eccb9c'][k] });
+    const bg = bungalow(b.house.x, b.house.z, rot, { accent, deckLight: true, wallTone: ['#f2d2a8', '#f6e0bf', '#eccb9c'][k] });
+    b.loungers = bg.loungers;
     // short spur between walkway and the bungalow's back deck
     if (k < 2) walkway([b.p.clone().addScaledVector(b.sd, 0.85), b.p.clone().addScaledVector(b.sd, 1.75)], { width: 1.3, postEvery: 0.9 });
     else walkway([end, end.clone().addScaledVector(endTan, 1.0)], { width: 1.8, postEvery: 1 });
     bungalows.push({ ...b, rot, door: b.house.clone().addScaledVector(b.sd, -2.05) });
   });
   A.bungalows = bungalows;
+  bungalows[1].loungers[1].taken = true;   // someone already reads on this one
   for (const p of mainPts) block(p.x, p.z, 1.6);
 
   // dock on the east side
@@ -2418,6 +2693,7 @@ function buildStructures() {
   A.bar = beachBar();
   A.benches = campfire();
   A.umb = SITE.umb.map((s, k) => umbrella(s, [['#ff6b5e', '#fff3e4'], ['#2fa59a', '#fff3e4'], ['#ffc94a', '#fff3e4'], ['#5b8fd9', '#fff3e4']][k], k === 1));
+  A.umb.forEach((u, k) => u.loungers.forEach((l, i) => { if (!(k % 2 === 0 && i === 1)) addSpot({ kind: 'sit', lie: true, pos: l.clone(), yaw: u.rot + Math.PI, r: 1.3, label: () => '躺下晒太阳' }); }));
   smallHut(SITE.hutA.x, SITE.hutA.z, 2.4, '#2f8f87');
   smallHut(SITE.hutB.x, SITE.hutB.z, 1.3, '#e0715a');
   // two more cottages on the north side: try spots until two clear rocks, paths and trees
@@ -2638,7 +2914,8 @@ function buildBoats(A) {
     BOATS.push({ type: 'moored', g, x: p.x, z: p.z, yaw: g.rotation.y, ph: rand() * 10 });
   });
   // one rowboat pulled up on the sand
-  { const s = coastPoint(133, 1.0), g = rowboat('#3aa597'); g.position.set(s.x, groundHeight(s.x, s.z) + 0.3, s.z); g.rotation.set(0.0, Math.atan2(-s.nz, s.nx) + 0.4, 0.12); scene.add(g); block(s.x, s.z, 1.8); }
+  { const s = coastPoint(133, 1.0), g = rowboat('#3aa597'), gy = groundHeight(s.x, s.z) + 0.3; g.position.set(s.x, gy, s.z); g.rotation.set(0.0, Math.atan2(-s.nz, s.nx) + 0.4, 0.12); scene.add(g); block(s.x, s.z, 1.8);
+    cCircle(s.x, s.z, 0.6, gy - 1, gy + 0.3); addSpot({ kind: 'sit', pos: new THREE.Vector3(s.x, gy + 0.05, s.z), yaw: Math.atan2(s.nx, s.nz) + Math.PI, r: 1.6, label: () => '坐进小船' }); }
 
   // sailboats on wide loops (kept clear of the islet, reef and boardwalk)
   const tracks = [new Track(oceanRing(57, -4.5, 2.0, 1), true), new Track(oceanRing(52, -4.5, 2.5, 2), true)];
@@ -2655,6 +2932,7 @@ function buildBoats(A) {
 const _bp = new THREE.Vector3(), _bt = new THREE.Vector3();
 function updateBoats(dt, t) {
   for (const b of BOATS) {
+    if (b.type === 'player') continue;           // being rowed in first-person mode
     if (b.type === 'moored') {
       const y = waveH(b.x, b.z, t);
       b.g.position.y = y - 0.02 + Math.sin(t * 1.3 + b.ph) * 0.02;
@@ -2772,6 +3050,7 @@ class Walker {
     const P = this.P;
     if (this.wait > 0) {
       this.wait -= dt; poseIdle(P, t);
+      if (this.look !== undefined && this.wait > 0) { let d = this.look - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); this.yaw += d * Math.min(1, dt * 5); P.root.rotation.y = this.yaw; P.armR.rotation.x = this.waveArm ? -2.6 + Math.sin(t * 9) * 0.3 : P.armR.rotation.x; this.track.sample(this.s, this.pos, this.tan); P.root.position.copy(this.pos); if (this.wait <= 0) { this.look = undefined; this.waveArm = false; } return; }
     } else {
       this.s += this.speed * this.dir * dt;
       if (this.pingpong) {
@@ -3712,8 +3991,10 @@ function applyEnv(E, rainK) {
   // man-made lights
   const lamp = smooth(0.08, 0.6, E.night);
   MAT.glow.emissiveIntensity = lamp * 3.2;
+  MAT.pane.emissive.copy(E.hor).lerp(E.top, 0.3); MAT.pane.emissiveIntensity = 0.6 * E.day * (1 - rainK * 0.4) + 0.03;
+  const fpK = FP.active ? 0.42 : 1;   // up close the eye adapts to lamps and the campfire
   MAT.bulb.color.setScalar(0.85 + lamp * 5.5);
-  for (const L of LIGHTS) L.light.intensity = L.base * lamp * (L.flicker ? (0.82 + 0.18 * Math.sin(U.time.value * 11 + L.seed) * Math.sin(U.time.value * 6.3 + L.seed * 2)) : 1);
+  for (const L of LIGHTS) L.light.intensity = L.base * lamp * fpK * (L.flicker ? (0.82 + 0.18 * Math.sin(U.time.value * 11 + L.seed) * Math.sin(U.time.value * 6.3 + L.seed * 2)) : 1);
   const fireTarget = Math.max(smooth(0.03, 0.4, E.night), 0.25) * (1 - rainK * 0.6);
   U.fire.value = lerp(U.fire.value, fireTarget, 0.05);
   if (lighthouseBeam) lighthouseBeam.visible = E.night > 0.2;
@@ -3755,10 +4036,10 @@ function tiltShader(taps) {
     }`;
 }
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, uExposure: { value: 1 }, uWarm: { value: 0 }, uSat: { value: 1.1 }, uContrast: { value: 1.05 }, uVignette: { value: 0.32 }, uGrain: { value: 0.022 }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) }, uNight: { value: 0 }, uFade: { value: 0 } },
+  uniforms: { tDiffuse: { value: null }, uExposure: { value: 1 }, uWarm: { value: 0 }, uSat: { value: 1.1 }, uContrast: { value: 1.05 }, uVignette: { value: 0.32 }, uGrain: { value: 0.022 }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) }, uNight: { value: 0 }, uFade: { value: 0 }, uUnder: { value: 0 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: /* glsl */`
-    uniform sampler2D tDiffuse; uniform float uExposure, uWarm, uSat, uContrast, uVignette, uGrain, uTime, uNight, uFade; uniform vec2 uRes; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float uExposure, uWarm, uSat, uContrast, uVignette, uGrain, uTime, uNight, uFade, uUnder; uniform vec2 uRes; varying vec2 vUv;
     vec3 RRTAndODTFit(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
     vec3 aces(vec3 c){
       const mat3 IN = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
@@ -3768,7 +4049,10 @@ const GradeShader = {
     vec3 toSRGB(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
     float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     void main(){
-      vec3 c = texture2D(tDiffuse, vUv).rgb;
+      vec2 uv = vUv;
+      if (uUnder > 0.001) uv += vec2(sin(vUv.y * 23.0 + uTime * 1.7), cos(vUv.x * 19.0 + uTime * 1.3)) * 0.0022 * uUnder;   // refraction shimmer
+      vec3 c = texture2D(tDiffuse, uv).rgb;
+      c *= mix(vec3(1.0), vec3(0.62, 0.95, 1.05), uUnder);   // the last bit of red is lost on the way to the eye
       c *= vec3(1.0 + uWarm * 0.09, 1.0 + uWarm * 0.015, 1.0 - uWarm * 0.1);   // white balance
       c = aces(c * uExposure / 0.7);
       c = toSRGB(c);
@@ -3780,7 +4064,7 @@ const GradeShader = {
       c = mix(vec3(l), c, uSat);
       // vignette
       vec2 q = vUv - 0.5; q.x *= uRes.x / uRes.y;
-      c *= 1.0 - uVignette * smoothstep(0.35, 1.15, length(q));
+      c *= 1.0 - (uVignette + uUnder * 0.25) * smoothstep(0.35 - uUnder * 0.1, 1.15, length(q));
       c += (hash(vUv * uRes + fract(uTime) * 91.0) - 0.5) * uGrain;
       c = mix(c, vec3(0.0), uFade);
       gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
@@ -3831,6 +4115,438 @@ function setQuality(name) {
 
 
 // =====================================================================
+//  First-person exploration: walk, swim and dive, row a boat, ride the
+//  sailboats, open doors, sit, sleep, chat with the islanders.
+// =====================================================================
+const FP = {
+  active: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: 0,
+  mode: 'walk', onGround: true, bob: 0, stepDist: 0, under: 0, wasUnder: false,
+  boat: null, ride: null, seat: null, stand: null, keys: {}, locked: false, prompt: null, toastT: 0,
+  stick: { x: 0, y: 0 }, run: false, mapT: 0, surf: 'sand', lastBoatYaw: 0, dragLook: false,
+};
+const FP_R = 0.26, FP_STEP = 0.5, FP_EYE = 1.22;
+const _fq2 = new THREE.Vector3(), _fv = new THREE.Vector3(), _fe2 = new THREE.Euler(0, 0, 0, 'YXZ');
+
+function groundAt(x, z, feet) {
+  let y = hAt(x, z), surf = y < -0.05 ? 'water' : y < 0.95 ? 'sand' : 'grass';
+  for (const f of COLL.floors) {
+    if (Math.abs(x - f.x) > f.r + 1 || Math.abs(z - f.z) > f.r + 1) continue;
+    const h = f.heightAt(x, z);
+    if (h !== null && h <= feet + FP_STEP && h > y) { y = h; surf = f.surf; }
+  }
+  return { y, surf };
+}
+function waterAt(x, z, t) { return Math.hypot(x - POOL.x, z - POOL.z) < POOL_R + 0.4 ? POOL_LEVEL : waveH(x, z, t); }
+function collide(p, feet, head) {
+  for (let it = 0; it < 2; it++) {
+    for (const c of COLL.circles) {
+      if (feet > c.y1 || head < c.y0) continue;
+      const dx = p.x - c.x, dz = p.z - c.z, r0 = c.r + FP_R, d2 = dx * dx + dz * dz;
+      if (d2 < r0 * r0 && d2 > 1e-8) { const d = Math.sqrt(d2), k = (r0 - d) / d; p.x += dx * k; p.z += dz * k; }
+    }
+    for (const s of COLL.segs) {
+      if (!s.on || feet > s.y1 - 0.05 || head < s.y0) continue;
+      const ex = s.bx - s.ax, ez = s.bz - s.az, l2 = ex * ex + ez * ez || 1;
+      const tt = clamp(((p.x - s.ax) * ex + (p.z - s.az) * ez) / l2, 0, 1);
+      const dx = p.x - (s.ax + ex * tt), dz = p.z - (s.az + ez * tt), d2 = dx * dx + dz * dz;
+      if (d2 < FP_R * FP_R) { const d = Math.sqrt(d2) || 1e-4, k = (FP_R - d) / d; p.x += (dx || 1e-4) * k; p.z += dz * k; }
+    }
+  }
+}
+
+// ---- entering / leaving ----
+function enterFP() {
+  FP.active = true;
+  const s = coastPoint(112, 2.4);
+  FP.pos.set(s.x, groundAt(s.x, s.z, 9).y, s.z);
+  FP.vel.set(0, 0, 0); FP.yaw = Math.atan2(-s.nx, -s.nz); FP.pitch = -0.05; FP.mode = 'walk';
+  camera.near = 0.05; camera.clearViewOffset(); fitFov(); resizePost();
+  controls.enabled = false; camTween = null;
+  for (const o of BASE_OBJS) o.visible = false;
+  if (OCEAN_RING) OCEAN_RING.visible = ABYSS.visible = true;
+  $('#app').classList.add('fp');
+  $('#fpHud').hidden = false;
+  $('#fpTouch').hidden = !IS_TOUCH;
+  $('#fpStart').hidden = IS_TOUCH || FP.dragLook;
+  fpToast('欢迎上岛。到处走走吧：可以下海、坐船、进屋，看到提示时按 E 互动。', 6);
+  drawMapBase();
+}
+function exitFP() {
+  if (!FP.active) return;
+  if (FP.mode === 'boat') leaveBoat(true);
+  FP.active = false; FP.mode = 'walk'; FP.seat = null; FP.ride = null;
+  try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) { /* not locked */ }
+  camera.near = 0.5; fitFov(); resizePost();
+  controls.enabled = true;
+  for (const o of BASE_OBJS) o.visible = true;
+  if (OCEAN_RING) OCEAN_RING.visible = ABYSS.visible = false;
+  $('#app').classList.remove('fp');
+  $('#fpHud').hidden = true;
+  scene.fog.density = 0; FP.under = 0; FP.wasUnder = false; U.under.value = 0; gradePass.uniforms.uUnder.value = 0; audio.setUnder(0); if (snow) snow.visible = false;
+  const h = homeView(); controls.target.copy(h.target); camera.position.copy(h.pos);
+}
+
+// ---- HUD helpers ----
+function fpToast(text, secs = 3.5) { const el = $('#fpToast'); el.textContent = text; el.hidden = false; FP.toastT = secs; }
+let MAP_BASE = null;
+function drawMapBase() {
+  if (MAP_BASE) return;
+  const S = 168, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d'), img = g.createImageData(S, S);
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+    const x = (i + 0.5) / S * 2 * R - R, z = (j + 0.5) / S * 2 * R - R, h = hAt(x, z), k = (j * S + i) * 4;
+    let col;
+    if (Math.hypot(x, z) > R) col = [0, 0, 0, 0];
+    else if (h < -5) col = [24, 74, 112, 255]; else if (h < -2) col = [34, 116, 140, 255]; else if (h < -0.05) col = [92, 178, 170, 255];
+    else if (h < 0.9) col = [222, 207, 168, 255]; else if (h < 4.5) col = [96, 132, 72, 255]; else col = [128, 118, 104, 255];
+    img.data.set(col, k);
+  }
+  g.putImageData(img, 0, 0);
+  MAP_BASE = c;
+}
+function drawMap() {
+  const cv = $('#fpMap'), g = cv.getContext('2d'), S = cv.width, sc = S / (2 * R);
+  g.clearRect(0, 0, S, S);
+  g.save(); g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 1, 0, TAU); g.clip();
+  g.drawImage(MAP_BASE, 0, 0);
+  g.fillStyle = 'rgba(255,255,255,0.85)';
+  for (const b of BOATS) { g.beginPath(); g.arc((b.g.position.x + R) * sc, (b.g.position.z + R) * sc, 2, 0, TAU); g.fill(); }
+  const px = (FP.pos.x + R) * sc, pz = (FP.pos.z + R) * sc, fx = -Math.sin(FP.yaw), fz = -Math.cos(FP.yaw);
+  g.translate(px, pz); g.rotate(Math.atan2(fz, fx));
+  g.fillStyle = '#ffc66d'; g.strokeStyle = 'rgba(0,0,0,0.6)'; g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(7, 0); g.lineTo(-5, 4.5); g.lineTo(-2.5, 0); g.lineTo(-5, -4.5); g.closePath(); g.stroke(); g.fill();
+  g.restore();
+}
+
+// ---- interactions ----
+const GREETINGS = ['今天的浪很适合冲浪。', '晚上来篝火这边坐坐吧。', '码头那边的小船可以借去划一划。', '瀑布下面的水潭很凉快。', '傍晚的时候，海豚常在外海跳。', '小心别踩到沙滩上的螃蟹。', '水上屋的门没锁，进去看看吧。', '灯塔那座小岛，只能游过去或者划船过去。', '潜下去看看，泻湖里有好多鱼。', '运气好的话能看到鲸鱼喷水。'];
+const BAR_LINES = ['老板递来一个冰镇椰子，插着一根吸管。', '你点了一杯鲜榨菠萝汁，杯沿还挂着一片青柠。', '老板说：今天的椰子是早上刚从树上摘的。', '你买了一串烤玉米，边走边吃。'];
+function nearestInteraction() {
+  const fx = -Math.sin(FP.yaw), fz = -Math.cos(FP.yaw);
+  const ex = FP.pos.x, ez = FP.pos.z, ey = FP.pos.y + (FP.mode === 'swim' ? 0.4 : 1.0);
+  let best = null, bestScore = 1e9;
+  const consider = (x, y, z, r, label, act) => {
+    const dx = x - ex, dz = z - ez, d = Math.hypot(dx, dz);
+    if (d > r || Math.abs(y - ey) > 2.6) return;
+    const dot = d < 0.9 ? 1 : (dx * fx + dz * fz) / d;
+    if (dot < 0.35) return;
+    const score = d - dot * 1.2;
+    if (score < bestScore) { bestScore = score; best = { label, act }; }
+  };
+  if (FP.mode === 'sit') return { label: '起身', act: standUp };
+  if (FP.mode === 'ride') return { label: '跳进海里', act: leaveRide };
+  if (FP.mode === 'boat') {
+    for (const b of BOATS) if ((b.type === 'sail' || b.type === 'motor') && b.g.position.distanceTo(FP.boat.g.position) < 6) return { label: `登上${b.name}`, act: () => boardRide(b) };
+    return { label: '下船', act: () => leaveBoat(false) };
+  }
+  for (const s of COLL.spots) if (!s.taken) consider(s.pos.x, s.pos.y, s.pos.z, s.r, s.label(), () => useSpot(s));
+  for (const b of BOATS) {
+    const p = b.g.position;
+    if (b.type === 'moored') consider(p.x, p.y + 0.3, p.z, 2.8, '划这条小船', () => takeBoat(b));
+    if (b.type === 'sail' || b.type === 'motor') consider(p.x, p.y + 0.5, p.z, 4.8, `登上${b.name}`, () => boardRide(b));
+  }
+  for (const w of PEOPLE) consider(w.pos.x, w.pos.y + 1, w.pos.z, 2.6, `和 ${w.name} 打招呼`, () => greet(w));
+  if (FP.mode === 'swim') {   // climb onto a deck or dock from the water
+    const W = waterAt(ex, ez, U.time.value);
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * TAU, x = ex + Math.cos(a) * 1.0, z = ez + Math.sin(a) * 1.0;
+      for (const f of COLL.floors) {
+        if (Math.abs(x - f.x) > f.r + 1 || Math.abs(z - f.z) > f.r + 1) continue;
+        const h = f.heightAt(x, z);
+        if (h !== null && h > W - 0.3 && h < W + 1.7) { consider(x, h + 0.5, z, 1.4, '爬上去', () => { FP.pos.set(x, h, z); FP.mode = 'walk'; FP.vel.set(0, 0, 0); audio.splash(0.4); }); break; }
+      }
+    }
+  }
+  return best;
+}
+function useSpot(s) {
+  if (s.kind === 'door') { s.door.target = s.door.target ? 0 : 1; audio.thud(0.6); return; }
+  if (s.kind === 'bed') { sleep(); return; }
+  if (s.kind === 'bar') { fpToast(pick(BAR_LINES)); return; }
+  if (s.kind === 'ladder') { FP.pos.copy(s.top); FP.mode = 'walk'; FP.vel.set(0, 0, 0); audio.splash(0.4); return; }
+  if (s.kind === 'fire') { sitAt(new THREE.Vector3(FP.pos.x, groundAt(FP.pos.x, FP.pos.z, FP.pos.y).y, FP.pos.z), Math.atan2(-(s.pos.x - FP.pos.x), -(s.pos.z - FP.pos.z)), false, 0.15); fpToast('篝火噼啪作响，暖烘烘的。'); return; }
+  if (s.kind === 'sit') { sitAt(s.pos, s.yaw, !!s.lie, 0, s); }
+}
+function sitAt(pos, yaw, lie, extra = 0, spot = null) {
+  FP.stand = { pos: FP.pos.clone(), mode: FP.mode };
+  FP.seat = { pos: pos.clone(), yaw, lie, spot, extra };
+  if (spot) spot.taken = true;
+  FP.mode = 'sit'; FP.yaw = yaw; FP.pitch = lie ? 0.25 : -0.05; FP.vel.set(0, 0, 0);
+}
+function standUp() {
+  if (FP.seat && FP.seat.spot) FP.seat.spot.taken = false;
+  FP.pos.copy(FP.stand.pos); FP.mode = 'walk'; FP.seat = null;
+}
+function sleep() {
+  const fade = $('#fpFade'); fade.classList.add('on');
+  setTimeout(() => {
+    const h = state.hour, night = h > 19.5 || h < 5.5;
+    state.hour = night ? 6.7 : (h + 2.5) % 24; state.timeTween = null;
+    const hh = Math.floor(state.hour), mm = Math.floor((state.hour % 1) * 60);
+    fpToast(`${night ? '一觉睡到天亮' : '小睡了一会儿'}，现在是 ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}。`, 4);
+    fade.classList.remove('on');
+  }, 1300);
+}
+function greet(w) {
+  w.wait = 4; w.look = Math.atan2(FP.pos.x - w.pos.x, FP.pos.z - w.pos.z); w.waveArm = true;
+  fpToast(`${w.name}：${pick(GREETINGS)}`, 4);
+}
+function takeBoat(b) {
+  b.type = 'player'; b.v = 0; b.yaw = b.g.rotation.y;
+  FP.boat = b; FP.mode = 'boat'; FP.lastBoatYaw = b.yaw; FP.yaw = b.yaw - Math.PI / 2; FP.pitch = -0.08;
+  fpToast('W/S 划桨前进后退，A/D 转向；靠近帆船或渔船按 E 可以登船。', 5);
+}
+function leaveBoat(silent) {
+  const b = FP.boat; if (!b) return;
+  b.type = 'moored'; b.x = b.g.position.x; b.z = b.g.position.z; b.yaw = b.g.rotation.y;
+  FP.boat = null;
+  // step onto a nearby deck if there is one, otherwise into the water
+  const p = b.g.position, W = waterAt(p.x, p.z, U.time.value);
+  let spot = null;
+  for (let r = 1.2; r <= 3.0 && !spot; r += 0.6) for (let k = 0; k < 16 && !spot; k++) {
+    const a = (k / 16) * TAU, x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r, g = groundAt(x, z, W + 1.6);
+    if (g.y > W - 0.1) spot = new THREE.Vector3(x, g.y, z);
+  }
+  if (spot) { FP.pos.copy(spot); FP.mode = 'walk'; }
+  else { const sx = Math.cos(b.yaw + Math.PI / 2), sz = -Math.sin(b.yaw + Math.PI / 2); FP.pos.set(p.x + sx * 1.6, W - FP_EYE + 0.1, p.z + sz * 1.6); FP.mode = 'swim'; if (!silent) audio.splash(0.8); }
+  FP.vel.set(0, 0, 0);
+}
+function boardRide(b) {
+  if (FP.mode === 'boat') leaveBoat(true);
+  FP.ride = b; FP.mode = 'ride'; FP.lastBoatYaw = b.g.rotation.y;
+  fpToast(`你上了${b.name}。随船绕岛，按 E 跳回海里。`, 5);
+}
+function leaveRide() {
+  const b = FP.ride; FP.ride = null;
+  const p = b.g.position, yaw = b.g.rotation.y, sx = Math.cos(yaw + Math.PI / 2), sz = -Math.sin(yaw + Math.PI / 2);
+  const W = waterAt(p.x + sx * 2.4, p.z + sz * 2.4, U.time.value);
+  FP.pos.set(p.x + sx * 2.4, W - FP_EYE + 0.1, p.z + sz * 2.4); FP.mode = 'swim'; FP.vel.set(0, -0.5, 0);
+  audio.splash(1);
+  emitSplash(FP.pos.x, 0.1, FP.pos.z, 26, { up: 2.2, spread: 0.9, life: 0.9, size: 1 });
+}
+function fpInteract() { const it = nearestInteraction(); if (it) it.act(); }
+
+// ---- per-frame update ----
+const RIDE_SEAT = { sail: new THREE.Vector3(-1.35, 0.42, 0.2), motor: new THREE.Vector3(0.85, 0.15, 0), row: new THREE.Vector3(-0.25, 0.02, 0) };
+function updateFP(dt, t) {
+  if (!FP.active) return;
+  const K = FP.keys;
+  let fwd = (K.KeyW || K.ArrowUp ? 1 : 0) - (K.KeyS || K.ArrowDown ? 1 : 0) - FP.stick.y;
+  let str = (K.KeyD || K.ArrowRight ? 1 : 0) - (K.KeyA || K.ArrowLeft ? 1 : 0) + FP.stick.x;
+  fwd = clamp(fwd, -1, 1); str = clamp(str, -1, 1);
+  const run = K.ShiftLeft || K.ShiftRight || FP.run;
+  const fx = -Math.sin(FP.yaw), fz = -Math.cos(FP.yaw), rx = Math.cos(FP.yaw), rz = -Math.sin(FP.yaw);
+  let eye;
+
+  if (FP.mode === 'sit') {
+    if (Math.abs(fwd) > 0.3 || Math.abs(str) > 0.3) standUp();
+    else eye = FP.seat.pos.clone().add(new THREE.Vector3(0, FP.seat.lie ? 0.45 : 0.78 + FP.seat.extra, 0));
+  }
+  if (FP.mode === 'ride') {
+    const b = FP.ride, yaw = b.g.rotation.y;
+    FP.yaw += yaw - FP.lastBoatYaw; FP.lastBoatYaw = yaw;
+    b.g.updateMatrixWorld();
+    eye = (b.type === 'sail' ? RIDE_SEAT.sail : RIDE_SEAT.motor).clone().applyMatrix4(b.g.matrixWorld).add(new THREE.Vector3(0, 0.85, 0));
+    FP.pos.set(eye.x, eye.y - FP_EYE, eye.z);
+  }
+  if (FP.mode === 'boat') {
+    const b = FP.boat;
+    b.v = clamp((b.v || 0) + fwd * 1.6 * dt - (b.v || 0) * 0.45 * dt, -1.0, 3.0);
+    b.yaw -= str * dt * (0.45 + Math.abs(b.v) * 0.3);
+    const hx = Math.cos(b.yaw), hz = -Math.sin(b.yaw), p = b.g.position;
+    const nx = p.x + hx * b.v * dt, nz = p.z + hz * b.v * dt, ahead = Math.sign(b.v || 1) * 1.4;
+    if (hAt(nx + hx * ahead, nz + hz * ahead) > -0.28 || Math.hypot(nx, nz) > R - 4) b.v *= -0.2;
+    else { p.x = nx; p.z = nz; }
+    const y = waveH(p.x, p.z, t);
+    p.y = y - 0.02;
+    b.g.rotation.order = 'YXZ'; b.g.rotation.y = b.yaw;
+    b.g.rotation.x = Math.sin(t * 1.1 + b.ph) * 0.04; b.g.rotation.z = Math.sin(t * 0.9 + b.ph * 2) * 0.035 - b.v * 0.01;
+    FP.yaw += b.yaw - FP.lastBoatYaw; FP.lastBoatYaw = b.yaw;
+    if (Math.abs(b.v) > 0.5 && Math.random() < dt * 8) emitWake(p.x - hx * 1.3, p.z - hz * 1.3, -hz * 0.3 * (Math.random() < 0.5 ? 1 : -1), hx * 0.3, 0.7, 1.8);
+    if (Math.abs(fwd) > 0.1) { FP.oar = (FP.oar || 0) + dt; if (FP.oar > 1.1) { FP.oar = 0; audio.splash(0.25); } }
+    b.g.updateMatrixWorld();
+    eye = RIDE_SEAT.row.clone().applyMatrix4(b.g.matrixWorld).add(new THREE.Vector3(0, 0.85, 0));
+    FP.pos.set(eye.x, eye.y - FP_EYE, eye.z);
+  }
+
+  if (FP.mode === 'walk' || FP.mode === 'swim') {
+    const swim = FP.mode === 'swim';
+    const speed = swim ? (run ? 1.9 : 1.15) : (run ? 3.5 : 1.55);
+    const len = Math.hypot(fwd, str) || 1, k = Math.min(1, Math.hypot(fwd, str));
+    const tx = (fx * fwd + rx * str) / len * speed * k, tz = (fz * fwd + rz * str) / len * speed * k;
+    const acc = Math.min(1, dt * (swim ? 2.5 : (FP.onGround ? 10 : 2)));
+    FP.vel.x += (tx - FP.vel.x) * acc; FP.vel.z += (tz - FP.vel.z) * acc;
+    const feet = FP.pos.y, ox = FP.pos.x, oz = FP.pos.z;
+    let nx = ox + FP.vel.x * dt, nz = oz + FP.vel.z * dt;
+    if (!swim) {   // too steep to climb? try sliding along one axis
+      const ok = (x, z) => groundAt(x, z, feet).y <= feet + FP_STEP;
+      if (!ok(nx, nz)) { if (ok(nx, oz)) nz = oz; else if (ok(ox, nz)) nx = ox; else { nx = ox; nz = oz; } }
+    }
+    _fq2.set(nx, 0, nz);
+    collide(_fq2, feet + 0.05, feet + 1.4);
+    const rr0 = Math.hypot(_fq2.x, _fq2.z);
+    if (rr0 > R - 3) { _fq2.x *= (R - 3) / rr0; _fq2.z *= (R - 3) / rr0; if (FP.toastT <= 0) fpToast('再往外就是这片海的边界了。', 2.5); }
+    FP.pos.x = _fq2.x; FP.pos.z = _fq2.z;
+    const G = groundAt(FP.pos.x, FP.pos.z, feet), W = waterAt(FP.pos.x, FP.pos.z, t), depth = W - G.y;
+    if (!swim) {
+      if ((K.Space) && FP.onGround) { FP.vel.y = 3.9; FP.onGround = false; K.Space = false; }
+      FP.vel.y -= 13 * dt;
+      FP.pos.y += FP.vel.y * dt;
+      if (FP.pos.y <= G.y) {
+        if (!FP.onGround && FP.vel.y < -4) audio.thud(0.5);
+        if (G.y - FP.pos.y > 0.04 && FP.onGround) FP.pos.y += (G.y - FP.pos.y) * Math.min(1, dt * 16); else FP.pos.y = G.y;
+        if (FP.pos.y < G.y - 0.25) FP.pos.y = G.y - 0.25;
+        FP.vel.y = 0; FP.onGround = true;
+      } else if (FP.pos.y - G.y > 0.06) FP.onGround = false;
+      if (depth > 1.18 && FP.pos.y < W - 1.0) { FP.mode = 'swim'; audio.splash(Math.min(1, -FP.vel.y * 0.2 + 0.4)); emitSplash(FP.pos.x, W, FP.pos.z, 14, { up: 1.6, spread: 0.7, life: 0.7, size: 0.8 }); }
+      FP.surf = depth > 0.08 ? 'water' : G.surf;
+    } else {
+      const float = W + 0.1 - FP_EYE;
+      if (K.Space) FP.vel.y += (1.7 - FP.vel.y) * Math.min(1, dt * 4);
+      else if (K.KeyC || K.ControlLeft) FP.vel.y += (-1.5 - FP.vel.y) * Math.min(1, dt * 4);
+      else FP.vel.y += ((float - FP.pos.y) * 2.2 - FP.vel.y) * Math.min(1, dt * 2.5);
+      FP.pos.y += FP.vel.y * dt;
+      FP.pos.y = clamp(FP.pos.y, G.y + 0.05 - (FP_EYE - 0.5), float + 0.05);
+      if (depth < 1.05) { FP.mode = 'walk'; FP.pos.y = Math.max(FP.pos.y, G.y); }
+      FP.surf = 'swim';
+    }
+    // head bob and footsteps
+    const sp = Math.hypot(FP.vel.x, FP.vel.z);
+    FP.bob += sp * dt * (swim ? 2.2 : 3.6);
+    FP.stepDist += sp * dt;
+    if (!swim && FP.onGround && FP.stepDist > (run ? 1.05 : 0.72)) { FP.stepDist = 0; audio.footstep(FP.surf); }
+    if (swim && FP.stepDist > 1.4) { FP.stepDist = 0; audio.splash(0.15); }
+    eye = new THREE.Vector3(FP.pos.x, FP.pos.y + FP_EYE + (swim ? Math.sin(t * 1.6) * 0.03 : Math.sin(FP.bob * 2) * 0.035 * Math.min(1, sp)), FP.pos.z);
+  }
+
+  // doors swing smoothly; closed doors collide
+  for (const d of COLL.doors) { d.open += (d.target - d.open) * Math.min(1, dt * 4); d.pivot.rotation.y = d.base + d.swing * d.open * 1.55; d.seg.on = d.open < 0.25; }
+
+  camera.position.copy(eye);
+  _fe2.set(FP.pitch, FP.yaw, 0); camera.quaternion.setFromEuler(_fe2);
+
+  // under water?
+  const camW = waterAt(eye.x, eye.z, t), under = eye.y < camW - 0.03;
+  FP.under = lerp(FP.under, under ? 1 : 0, Math.min(1, dt * 10));
+  if (under !== FP.wasUnder) { audio.setUnder(under ? 1 : 0); if (!under) audio.splash(0.35); FP.wasUnder = under; }
+  const fog = scene.fog;
+  if (under) {
+    const depthK = clamp((camW - eye.y) / 8, 0, 1);
+    U.fogCol.value.setRGB(0.03, 0.17, 0.2).multiplyScalar(0.3 + 1.5 * U.ambient.value.g * (1 - depthK * 0.6));
+    fog.color.copy(U.fogCol.value); fog.density = 0.05 + depthK * 0.045 + state.rainK * 0.02;
+  } else {
+    U.fogCol.value.setRGB(0.03, 0.17, 0.2).multiplyScalar(0.3 + 1.5 * U.ambient.value.g);
+    fog.color.copy(U.skyHorizon.value).lerp(U.skyTop.value, 0.15); fog.density = 0.0032 + state.rainK * 0.006;
+  }
+  U.under.value = under ? 1 : 0;
+  gradePass.uniforms.uUnder.value = FP.under;
+  if (snow) { snow.visible = FP.under > 0.1; snow.position.copy(eye); }
+
+  // prompt, toast, map, status
+  FP.prompt = nearestInteraction();
+  const pr = $('#fpPrompt');
+  if (FP.prompt) { pr.hidden = false; $('#fpPromptText').textContent = FP.prompt.label; } else pr.hidden = true;
+  if (FP.toastT > 0) { FP.toastT -= dt; if (FP.toastT <= 0) $('#fpToast').hidden = true; }
+  if ((FP.mapT -= dt) < 0) { FP.mapT = 0.12; drawMap(); }
+  const label = { walk: FP.surf === 'water' ? '涉水' : FP.surf === 'wood' ? '木栈道' : FP.surf === 'grass' ? '草地' : '沙滩', swim: FP.under > 0.5 ? `潜水 · 水深 ${(camW - eye.y).toFixed(1)} m` : '游泳', boat: '划船', ride: '乘船', sit: FP.seat && FP.seat.lie ? '躺着' : '坐着' }[FP.mode];
+  $('#fpStatus').textContent = label;
+}
+
+// floating particles that catch the light underwater
+let snow = null;
+function buildSnow() {
+  const N = 500, p = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) p.set([rr(-7, 7), rr(-4, 4), rr(-7, 7)], i * 3);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  snow = new THREE.Points(g, new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, uniforms: { uTime: U.time, uLight: U.ambient },
+    vertexShader: `uniform float uTime; varying float vA; void main(){ vec3 p = position; p.y += sin(uTime * 0.3 + p.x) * 0.3; p.x += sin(uTime * 0.2 + p.z) * 0.3;
+      vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = clamp(26.0 / -mv.z, 1.0, 9.0); vA = smoothstep(9.0, 3.0, -mv.z) * smoothstep(0.6, 1.4, -mv.z); }`,
+    fragmentShader: `uniform vec3 uLight; varying float vA; void main(){ float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(uLight * 0.9 + 0.03, smoothstep(0.5, 0.1, d) * vA * 0.28); }`,
+  }));
+  snow.frustumCulled = false; snow.visible = false; snow.renderOrder = 9;
+  scene.add(snow);
+}
+
+// ---- input ----
+// pointer lock can be refused (e.g. inside a sandboxed frame): fall back to click-and-drag looking
+function lockMouse() {
+  const fallback = () => {
+    if (FP.locked || FP.dragLook || FP.hadLock) return;   // after a real lock, a refusal is just the browser's re-lock cooldown
+    FP.dragLook = true; $('#fpStart').hidden = true;
+    fpToast('这里无法锁定鼠标：按住左键拖动来环顾四周。', 5);
+  };
+  try { const r = canvas.requestPointerLock && canvas.requestPointerLock(); if (r && r.catch) r.catch(fallback); } catch (err) { fallback(); }
+  setTimeout(() => { if (FP.active && !FP.locked) fallback(); }, 600);
+}
+function nextPeriod() {
+  const hours = [...document.querySelectorAll('.chip')].map((c) => +c.dataset.hour);
+  const next = hours.find((h) => h > state.hour + 0.05) ?? hours[0];
+  document.querySelector(`.chip[data-hour="${next}"]`).click();
+}
+function setupFPInput() {
+  addEventListener('keydown', (e) => {
+    if (!FP.active || e.target.tagName === 'INPUT') return;
+    FP.keys[e.code] = true;
+    if (e.code === 'KeyE' && !e.repeat) fpInteract();
+    if (e.code === 'KeyT' && !e.repeat) nextPeriod();
+    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+  });
+  addEventListener('keyup', (e) => { FP.keys[e.code] = false; });
+  addEventListener('blur', () => { FP.keys = {}; });
+  const look = (dx, dy, k) => { FP.yaw -= dx * k; FP.pitch = clamp(FP.pitch - dy * k, -1.45, 1.45); };
+  canvas.addEventListener('mousedown', (e) => {
+    if (!FP.active || IS_TOUCH) return;
+    if (!FP.locked && !FP.dragLook) lockMouse();
+    FP.mouseDown = true;
+  });
+  addEventListener('mouseup', () => { FP.mouseDown = false; });
+  addEventListener('mousemove', (e) => {
+    if (!FP.active || IS_TOUCH) return;
+    if (FP.locked) look(e.movementX, e.movementY, 0.0022);
+    else if (FP.mouseDown) look(e.movementX, e.movementY, 0.004);
+  });
+  document.addEventListener('pointerlockchange', () => {
+    FP.locked = document.pointerLockElement === canvas;
+    if (FP.locked) FP.hadLock = true;
+    $('#app').classList.toggle('locked', FP.locked);
+    if (FP.active && !IS_TOUCH && !FP.dragLook) $('#fpStart').hidden = FP.locked;
+    if (!FP.locked) FP.keys = {};
+  });
+  // touch: left-hand stick, right-hand look, buttons
+  const stick = $('#fpStick'), knob = stick.querySelector('i');
+  let stickId = null, lookId = null, sx = 0, sy = 0, lx = 0, ly = 0;
+  const zone = $('#fpTouch');
+  zone.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
+    if (e.clientX < innerWidth * 0.45 && stickId === null) { stickId = e.pointerId; sx = e.clientX; sy = e.clientY; stick.style.left = sx - 55 + 'px'; stick.style.top = sy - 55 + 'px'; stick.classList.add('on'); }
+    else if (lookId === null) { lookId = e.pointerId; lx = e.clientX; ly = e.clientY; }
+    zone.setPointerCapture(e.pointerId);
+  });
+  zone.addEventListener('pointermove', (e) => {
+    if (e.pointerId === stickId) { const dx = clamp((e.clientX - sx) / 50, -1, 1), dy = clamp((e.clientY - sy) / 50, -1, 1); FP.stick.x = dx; FP.stick.y = dy; knob.style.transform = `translate(${dx * 32}px, ${dy * 32}px)`; }
+    if (e.pointerId === lookId) { look(e.clientX - lx, e.clientY - ly, 0.006); lx = e.clientX; ly = e.clientY; }
+  });
+  const end = (e) => { if (e.pointerId === stickId) { stickId = null; FP.stick.x = FP.stick.y = 0; knob.style.transform = ''; stick.classList.remove('on'); } if (e.pointerId === lookId) lookId = null; };
+  zone.addEventListener('pointerup', end); zone.addEventListener('pointercancel', end);
+  zone.querySelectorAll('button[data-k]').forEach((b) => {
+    const k = b.dataset.k;
+    b.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (k === 'KeyE') fpInteract();
+      else if (k === 'Run') { FP.run = !FP.run; b.setAttribute('aria-pressed', String(FP.run)); }
+      else FP.keys[k] = true;
+    });
+    const up = () => { if (k !== 'KeyE' && k !== 'Run') FP.keys[k] = false; };
+    b.addEventListener('pointerup', up); b.addEventListener('pointerleave', up); b.addEventListener('pointercancel', up);
+  });
+  $('#fpExit').addEventListener('click', () => setCamMode('orbit'));
+  $('#fpStart').addEventListener('click', (e) => { if (!e.target.closest('#fpBack')) lockMouse(); });
+  $('#fpBack').addEventListener('click', () => setCamMode('orbit'));
+}
+
+
+// =====================================================================
 //  Ambient sound — all synthesised with WebAudio (no files to load)
 // =====================================================================
 class Ambience {
@@ -3843,7 +4559,9 @@ class Ambience {
     this.out = ctx.createGain(); this.out.gain.value = 0;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.4;
-    this.out.connect(comp); comp.connect(ctx.destination);
+    this.under = this.filt('lowpass', 20000, 0.5);   // muffles everything when the listener dives
+    this.out.connect(this.under).connect(comp); comp.connect(ctx.destination);
+    this.fx = this.gain(1); this.fx.connect(this.out);
     this.pink = this.noise('pink', 8); this.brown = this.noise('brown', 8); this.white = this.noise('white', 3);
     this.verb = ctx.createConvolver(); this.verb.buffer = this.impulse(2.8, 2.4);
     this.verbIn = ctx.createGain(); this.verbIn.gain.value = 0.4; this.verbIn.connect(this.verb); this.verb.connect(this.out);
@@ -3921,7 +4639,7 @@ class Ambience {
     for (const [tt, f] of pts.slice(1)) o.frequency.linearRampToValueAtTime(f, t + tt);
     const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     const p = ctx.createStereoPanner(); p.pan.value = pan;
-    o.connect(g).connect(p).connect(this.bus[bus]); o.start(t); o.stop(t + dur + 0.05);
+    o.connect(g).connect(p).connect(bus === 'fx' ? this.fx : this.bus[bus]); o.start(t); o.stop(t + dur + 0.05);
   }
   birdCall() {
     const r = Math.random(), pan = Math.random() * 1.6 - 0.8;
@@ -3946,6 +4664,41 @@ class Ambience {
     const ctx = this.ctx, t = ctx.currentTime, s = ctx.createBufferSource(); s.buffer = this.brown;
     const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + 6);
     s.connect(this.filt('lowpass', 150)).connect(g).connect(this.bus.rain); s.start(t, Math.random() * 1.5, 6.2);
+  }
+  // ---- first-person one-shots ----
+  live() { return this.ctx && this.enabled && this.ctx.state === 'running'; }
+  burst(dur, gain, chain, { when = 0, attack = 0.004, pan = 0 } = {}) {
+    const ctx = this.ctx, t = ctx.currentTime + when, s = ctx.createBufferSource(); s.buffer = this.white;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const p = ctx.createStereoPanner(); p.pan.value = pan;
+    let node = s; for (const f of chain) node = node.connect(f);
+    node.connect(g).connect(p).connect(this.fx); s.start(t, Math.random() * 2, dur + 0.05);
+  }
+  setUnder(k) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.under.frequency.cancelScheduledValues(t);
+    this.under.frequency.setTargetAtTime(k > 0.5 ? 520 : 20000, t, k > 0.5 ? 0.05 : 0.12);
+  }
+  footstep(surf) {
+    if (!this.live()) return;
+    const pan = (Math.random() - 0.5) * 0.3, v = 0.8 + Math.random() * 0.4;
+    if (surf === 'wood') { this.burst(0.09, 0.32 * v, [this.filt('bandpass', 180 + Math.random() * 60, 1.4)], { pan }); this.burst(0.03, 0.06 * v, [this.filt('bandpass', 1400, 2)], { pan }); }
+    else if (surf === 'water') { this.burst(0.22, 0.12 * v, [this.filt('bandpass', 900 + Math.random() * 500, 0.9)], { pan, attack: 0.02 }); this.burst(0.12, 0.05 * v, [this.filt('highpass', 3000)], { pan, when: 0.05 }); }
+    else if (surf === 'grass') this.burst(0.13, 0.06 * v, [this.filt('highpass', 2200), this.filt('lowpass', 7000)], { pan, attack: 0.02 });
+    else if (surf === 'stone') this.burst(0.06, 0.12 * v, [this.filt('bandpass', 700, 1.2)], { pan });
+    else { this.burst(0.15, 0.09 * v, [this.filt('bandpass', 1500 + Math.random() * 900, 0.7)], { pan, attack: 0.025 }); this.burst(0.08, 0.05 * v, [this.filt('lowpass', 300)], { pan }); }
+  }
+  splash(k = 1) {
+    if (!this.live()) return;
+    this.burst(0.25 + k * 0.5, 0.08 + k * 0.22, [this.filt('bandpass', 700 + Math.random() * 400, 0.6)], { attack: 0.01 });
+    this.burst(0.2 + k * 0.4, 0.04 + k * 0.1, [this.filt('highpass', 2500)], { attack: 0.02, when: 0.04 });
+    for (let i = 0; i < 2 + k * 5; i++) { const f = 900 + Math.random() * 2200; this.tone([[0, f], [0.04, f * 1.5]], 0.06, { gain: 0.012 + k * 0.012, pan: Math.random() - 0.5, when: 0.1 + Math.random() * (0.2 + k * 0.4), bus: 'fx' }); }
+  }
+  thud(k = 1) {
+    if (!this.live()) return;
+    this.burst(0.18, 0.25 * k, [this.filt('lowpass', 220, 1.2)]);
+    this.burst(0.04, 0.05 * k, [this.filt('bandpass', 1600, 1.5)]);
   }
   setEnabled(on) {
     if (on && !this.ensure()) return false;
@@ -3997,7 +4750,7 @@ function applyViewShift(dt) {
   if (Math.abs(viewShift) < 0.5) { if (camera.view) camera.clearViewOffset(); return; }
   camera.setViewOffset(innerWidth, innerHeight, 0, viewShift, innerWidth, innerHeight);
 }
-function fitFov() { const a = innerWidth / innerHeight; camera.fov = a < 0.85 ? 44 : a < 1.25 ? 38 : 32; camera.updateProjectionMatrix(); }
+function fitFov() { const a = innerWidth / innerHeight; camera.fov = FP.active ? (a < 0.85 ? 80 : 72) : a < 0.85 ? 44 : a < 1.25 ? 38 : 32; camera.updateProjectionMatrix(); }
 function homeView() {
   const a = innerWidth / innerHeight, t = new THREE.Vector3(0, 1.5, 3);
   const dist = Math.max(128, (a < 1 ? 112 : 150) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * a));
@@ -4021,9 +4774,10 @@ function updateTween(dt) {
 }
 function followTarget(i) { const f = FOLLOWABLE[i]; return f.pos.clone().add(new THREE.Vector3(0, f.h, 0)); }
 function setCamMode(mode, { silent = false } = {}) {
+  if (mode !== 'fp' && FP.active) exitFP();
   camMode = mode;
   document.querySelectorAll('#camSeg button').forEach((b) => b.classList.toggle('active', b.dataset.cam === mode));
-  movePill($('#camSeg'));
+  if (mode !== 'fp') movePill($('#camSeg'));   // the dock is hidden while roaming
   $('#btnNext').hidden = mode !== 'follow';
   $('#followTag').hidden = mode !== 'follow';
   controls.enablePan = mode === 'orbit';
@@ -4034,6 +4788,8 @@ function setCamMode(mode, { silent = false } = {}) {
   } else if (mode === 'follow') {
     controls.minDistance = 4;
     showFollow();
+  } else if (mode === 'fp') {
+    if (!FP.active) enterFP();
   } else if (mode === 'tour') {
     tourU = 0;
     const p = tourCurves.pos.getPointAt(0), t = tourCurves.target.getPointAt(0);
@@ -4187,9 +4943,10 @@ function setupUI() {
   addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' && (e.key === ' ' || e.key.startsWith('Arrow'))) return;
     const k = e.key.toLowerCase();
+    if (camMode === 'fp' && ['w', 'a', 's', 'd', 'e', 'c', ' ', 'shift', 'control', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) return;
     if (k === ' ') { e.preventDefault(); $('#btnPlay').click(); }
     else if (k === 'r') rainBtn.click();
-    else if (k === '1') setCamMode('orbit'); else if (k === '2') setCamMode('follow'); else if (k === '3') setCamMode('tour');
+    else if (k === '1') setCamMode('orbit'); else if (k === '2') setCamMode('follow'); else if (k === '3') setCamMode('tour'); else if (k === '4') setCamMode('fp');
     else if (k === 'n') nextFollow();
     else if (k === 'm') btnSound.click();
     else if (k === 'h') hideUI(!$('#app').classList.contains('ui-hidden'));
@@ -4253,7 +5010,7 @@ function frame() {
     // fade clouds that drift between the lens and the island
     const dc = c.mesh.position.distanceTo(camera.position);
     _v1.copy(c.mesh.position).project(camera);
-    const inFront = Math.abs(_v1.x) < 0.75 && _v1.y > -0.7 && _v1.y < 0.55 && dc < camera.position.distanceTo(controls.target) + 4;
+    const inFront = camMode !== 'fp' && Math.abs(_v1.x) < 0.75 && _v1.y > -0.7 && _v1.y < 0.55 && dc < camera.position.distanceTo(controls.target) + 4;
     c.fade = lerp(c.fade ?? 1, inFront ? 0 : 1, 1 - Math.exp(-dt * 2.5));
     c.mat.opacity = smooth(8, 22, dc) * c.fade;
     if (c.mat.opacity < 0.03) c.mesh.visible = false;
@@ -4263,14 +5020,14 @@ function frame() {
   sky.position.copy(camera.position);
 
   // camera + post
-  applyViewShift(dt);
-  updateCamera(dt);
+  if (camMode === 'fp') { updateFP(dt, t); U.cut.value.z = 0; focusY = 0.5; }
+  else { applyViewShift(dt); updateCamera(dt); }
   const pr = QUALITY[qualityName].pr;
   tiltPass.uniforms.uFocus.value = focusY;
   const camDist = camera.position.distanceTo(controls.target);
   tiltPass.uniforms.uBand.value = clamp(lerp(0.42, 0.17, (camDist - 12) / 100), 0.17, 0.42);
-  tiltPass.uniforms.uBlur.value = 11 * state.tilt * (innerHeight * pr / 1000);
-  bloomPass.strength = E.bloom * state.bloom * 0.72;
+  tiltPass.uniforms.uBlur.value = camMode === 'fp' ? 0 : 11 * state.tilt * (innerHeight * pr / 1000);
+  bloomPass.strength = E.bloom * state.bloom * (camMode === 'fp' ? 0.5 : 0.72);
   bloomPass.threshold = lerp(2.2, 0.85, E.night);
   const g = gradePass.uniforms;
   g.uExposure.value = E.exp; g.uWarm.value = E.warm; g.uSat.value = E.sat; g.uTime.value = t; g.uNight.value = E.night;
@@ -4279,7 +5036,7 @@ function frame() {
   composer.render(dt);
 
   // sound
-  audio.update(dt, { day: E.day, dawn: smooth(5.4, 6.5, state.hour) * (1 - smooth(8, 9.5, state.hour)), night: smooth(0.5, 0.9, E.night), rain: state.rainK, fire: U.fire.value * smooth(0.2, 0.6, E.night), near: clamp(1 - (camDist - 20) / 170, 0, 1), wind: U.wind.value });
+  audio.update(dt, { day: E.day, dawn: smooth(5.4, 6.5, state.hour) * (1 - smooth(8, 9.5, state.hour)), night: smooth(0.5, 0.9, E.night), rain: state.rainK, fire: U.fire.value * smooth(0.2, 0.6, E.night), near: camMode === 'fp' ? clamp(1 - (hAt(FP.pos.x, FP.pos.z) - 0.5) / 8, 0.25, 1) : clamp(1 - (camDist - 20) / 170, 0, 1), wind: U.wind.value });
 
   // adaptive quality: step down once if the GPU is struggling
   if (started && t > 6) {
@@ -4310,8 +5067,11 @@ async function init() {
       camera.position.copy(sph(home.target, 340, 0.62, -0.5));
       camera.lookAt(home.target);
       buildTour(A);
+      scene.fog = new THREE.FogExp2(0x9fc4d8, 0);   // only used in first-person mode
+      buildSnow();
       buildPost();
       setupUI();
+      setupFPInput();
       sampleEnv(state.hour, 0); applyEnv(ENV, 0); updateEnvironment(state.hour, 0, 0, true);
     }],
   ];
@@ -4338,7 +5098,7 @@ init().catch((err) => {
 });
 
 // handy for tinkering from the browser console
-window.__island = { MARINE, CLOUDS, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph };
+window.__island = { MARINE, CLOUDS, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph, FP, COLL, groundAt, fpInteract, nearestInteraction, enterFP, exitFP, BOATS, PEOPLE, takeBoat, boardRide, useSpot, coastPoint, hAt, waterAt, updateFP, updateBoats, U };
 
 </script>
 </body>
