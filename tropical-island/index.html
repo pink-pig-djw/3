@@ -214,6 +214,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .fp-btns button[aria-pressed="true"] { background: var(--lagoon); color: #08302b; }
 .fp-fade { position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity 1.2s ease; }
 .fp-fade.on { opacity: 1; }
+/* eyelids for falling asleep and waking up */
+.fp-lids { --lid: 0; position: absolute; inset: 0; pointer-events: none; }
+.fp-lids::before, .fp-lids::after { content: ""; position: absolute; left: -10%; right: -10%; height: calc(var(--lid) * 62%); background: #030405; border-radius: 0 0 50% 50% / 0 0 40px 40px; box-shadow: 0 0 60px 40px #030405; opacity: min(1, calc(var(--lid) * 4)); }
+.fp-lids::before { top: 0; }
+.fp-lids::after { bottom: 0; transform: scaleY(-1); }
+.cam-fade { position: fixed; inset: 0; z-index: 8; background: #05090b; opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.cam-fade.on { opacity: 1; }
 @media (pointer: coarse) {
   .fp-map { right: auto; left: 12px; bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 112px); width: 112px; height: 112px; }
   .fp-bar { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 180px); }
@@ -376,9 +383,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
         <button data-k="Run" aria-pressed="false">跑</button>
       </div>
     </div>
+    <div class="fp-lids" id="fpLids" aria-hidden="true"></div>
     <div class="fp-fade" id="fpFade"></div>
   </div>
 
+  <div class="cam-fade" id="camFade" aria-hidden="true"></div>
   <div class="hint hud" id="hint">拖动旋转 · 滚轮或双指缩放 · 右键平移</div>
   <button class="icon-btn unhide glass" id="btnUnhide" title="显示界面（H）" aria-label="显示界面">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>
@@ -2182,7 +2191,7 @@ function bedAt(M, x, z, rotY, blanket) {
   // the bed is solid (knee height)
   const W = 0.55, L = 1.0;
   cSeg(F, -W, -L, W, -L, 0, 0.55); cSeg(F, W, -L, W, L, 0, 0.55); cSeg(F, W, L, -W, L, 0, 0.55); cSeg(F, -W, L, -W, -L, 0, 0.55);
-  addSpot({ kind: 'bed', pos: c, r: 1.6, label: () => '睡一觉' });
+  addSpot({ kind: 'bed', pos: c, head: toWorld(F, 0, 0.56, -0.62), foot: toWorld(F, 0, 0.56, 0.7), r: 1.6, label: () => '睡一觉' });
   return c;
 }
 function tableAt(M, x, z, chairs = 2) {
@@ -2357,7 +2366,7 @@ function bungalow(x, z, rotY, { accent = '#2f8f87', deckLight = true, stilts = 3
   floorRect(M, -2.85, 2.85, -2.5, 2.62, 0.0);
   cSeg(M, -2.75, 2.55, 1.6, 2.55, 0, 0.85); cSeg(M, -2.75, 2.55, -2.75, 1.1, 0, 0.85); cSeg(M, 2.75, 2.55, 2.75, 1.1, 0, 0.85);
   for (const [px, pz] of [[-2.55, -2.3], [2.55, -2.3], [-2.55, 0.1], [2.55, 0.1], [-2.55, 2.35], [2.55, 2.35], [0, 2.35], [0, -2.3]]) { const w = toWorld(M, px, 0, pz); cCircle(w.x, w.z, 0.18, -20, w.y - 0.1); }
-  addSpot({ kind: 'ladder', pos: toWorld(M, 2.2, -0.6, 3.0), top: toWorld(M, 2.2, 0, 2.15), r: 1.8, label: () => '顺着梯子爬上平台' });
+  addSpot({ kind: 'ladder', pos: toWorld(M, 2.2, -0.6, 3.0), top: toWorld(M, 2.2, 0, 2.15), r: 1.8, label: () => (FP.mode === 'swim' ? '顺着梯子爬上平台' : '顺着梯子下水') });
   const loungers = [];
   for (const sg of [-1, 1]) loungers.push(addSpot({ kind: 'sit', lie: true, pos: toWorld(M, sg * 1.2 - 0.2, 0.36, 1.8), yaw: rotY + Math.PI, r: 1.3, label: () => '躺下晒太阳' }));
   block(x, z, 3.8);
@@ -2937,7 +2946,8 @@ function updateBoats(dt, t) {
       const y = waveH(b.x, b.z, t);
       b.g.position.y = y - 0.02 + Math.sin(t * 1.3 + b.ph) * 0.02;
       b.g.rotation.x = Math.sin(t * 1.1 + b.ph) * 0.05;
-      b.g.rotation.z = Math.sin(t * 0.9 + b.ph * 2) * 0.04;
+      b.rock = (b.rock || 0) * Math.exp(-dt * 1.6);
+      b.g.rotation.z = Math.sin(t * 0.9 + b.ph * 2) * 0.04 + b.rock * Math.sin(t * 6.5);   // rocks when someone steps in
       b.g.rotation.y = b.yaw + Math.sin(t * 0.2 + b.ph) * 0.08;
       continue;
     }
@@ -4159,7 +4169,8 @@ function enterFP() {
   FP.active = true;
   const s = coastPoint(112, 2.4);
   FP.pos.set(s.x, groundAt(s.x, s.z, 9).y, s.z);
-  FP.vel.set(0, 0, 0); FP.yaw = Math.atan2(-s.nx, -s.nz); FP.pitch = -0.05; FP.mode = 'walk';
+  FP.vel.set(0, 0, 0); FP.yaw = Math.atan2(-s.nx, -s.nz); FP.pitch = -0.05; FP.mode = 'walk'; FP.act = null;
+  if (camera.parent !== scene) scene.add(camera);   // so the arms (children of the camera) render
   camera.near = 0.05; camera.clearViewOffset(); fitFov(); resizePost();
   controls.enabled = false; camTween = null;
   for (const o of BASE_OBJS) o.visible = false;
@@ -4174,7 +4185,9 @@ function enterFP() {
 function exitFP() {
   if (!FP.active) return;
   if (FP.mode === 'boat') leaveBoat(true);
+  cancelAct(); if (FP.seat && FP.seat.spot) FP.seat.spot.taken = false;
   FP.active = false; FP.mode = 'walk'; FP.seat = null; FP.ride = null;
+  if (ARMS.root) ARMS.root.visible = false;
   try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) { /* not locked */ }
   camera.near = 0.5; fitFov(); resizePost();
   controls.enabled = true;
@@ -4183,7 +4196,7 @@ function exitFP() {
   $('#app').classList.remove('fp');
   $('#fpHud').hidden = true;
   scene.fog.density = 0; FP.under = 0; FP.wasUnder = false; U.under.value = 0; gradePass.uniforms.uUnder.value = 0; audio.setUnder(0); if (snow) snow.visible = false;
-  const h = homeView(); controls.target.copy(h.target); camera.position.copy(h.pos);
+  const h = homeView(Math.atan2(FP.pos.x, FP.pos.z - 3)); controls.target.copy(h.target); camera.position.copy(h.pos); camera.lookAt(h.target);   // look from the side the player was on
 }
 
 // ---- HUD helpers ----
@@ -4253,81 +4266,260 @@ function nearestInteraction() {
       for (const f of COLL.floors) {
         if (Math.abs(x - f.x) > f.r + 1 || Math.abs(z - f.z) > f.r + 1) continue;
         const h = f.heightAt(x, z);
-        if (h !== null && h > W - 0.3 && h < W + 1.7) { consider(x, h + 0.5, z, 1.4, '爬上去', () => { FP.pos.set(x, h, z); FP.mode = 'walk'; FP.vel.set(0, 0, 0); audio.splash(0.4); }); break; }
+        if (h !== null && h > W - 0.3 && h < W + 1.7) { consider(x, h + 0.5, z, 1.4, '爬上去', () => pullUp(x, h, z)); break; }
       }
     }
   }
   return best;
 }
+// ---- interactions, each played as a short first-person action ----
+const RIDE_SEAT = { sail: new THREE.Vector3(-1.35, 0.42, 0.2), motor: new THREE.Vector3(0.85, 0.15, 0), row: new THREE.Vector3(-0.25, 0.02, 0) };
+const _up = (y) => new THREE.Vector3(0, y, 0);
+function seatEye(seat) { return seat.pos.clone().add(_up(seat.lie ? 0.45 : 0.78 + seat.extra)); }
+function boatEye(b, seat) { b.g.updateMatrixWorld(); return seat.clone().applyMatrix4(b.g.matrixWorld).add(_up(0.85)); }
+function rideEye(b) { return boatEye(b, b.type === 'sail' ? RIDE_SEAT.sail : RIDE_SEAT.motor); }
+const standEye = (p) => p.clone().add(_up(FP_EYE));
+const yawTo = (from, to) => Math.atan2(-(to.x - from.x), -(to.z - from.z));
+
 function useSpot(s) {
-  if (s.kind === 'door') { s.door.target = s.door.target ? 0 : 1; audio.thud(0.6); return; }
-  if (s.kind === 'bed') { sleep(); return; }
-  if (s.kind === 'bar') { fpToast(pick(BAR_LINES)); return; }
-  if (s.kind === 'ladder') { FP.pos.copy(s.top); FP.mode = 'walk'; FP.vel.set(0, 0, 0); audio.splash(0.4); return; }
-  if (s.kind === 'fire') { sitAt(new THREE.Vector3(FP.pos.x, groundAt(FP.pos.x, FP.pos.z, FP.pos.y).y, FP.pos.z), Math.atan2(-(s.pos.x - FP.pos.x), -(s.pos.z - FP.pos.z)), false, 0.15); fpToast('篝火噼啪作响，暖烘烘的。'); return; }
-  if (s.kind === 'sit') { sitAt(s.pos, s.yaw, !!s.lie, 0, s); }
+  if (s.kind === 'door') { openDoor(s.door); return; }
+  if (s.kind === 'bed') { sleep(s); return; }
+  if (s.kind === 'bar') { buyAtBar(s); return; }
+  if (s.kind === 'ladder') { if (FP.mode === 'swim') climbLadder(s); else descendLadder(s); return; }
+  if (s.kind === 'fire') {
+    const dx = FP.pos.x - s.pos.x, dz = FP.pos.z - s.pos.z, l = Math.hypot(dx, dz) || 1, r = clamp(l, 1.5, 2.2);
+    const x = s.pos.x + dx / l * r, z = s.pos.z + dz / l * r;
+    sitAt(new THREE.Vector3(x, groundAt(x, z, FP.pos.y + 0.4).y, z), yawTo({ x, z }, s.pos), false, 0.15, null, 'warm'); fpToast('篝火噼啪作响，暖烘烘的。'); return;
+  }
+  if (s.kind === 'sit') sitAt(s.pos, s.yaw, !!s.lie, 0, s);
 }
-function sitAt(pos, yaw, lie, extra = 0, spot = null) {
+// reach for the handle, push or pull, let go
+function openDoor(d) {
+  const knob = new THREE.Vector3();
+  startAct({
+    dur: 0.95,
+    hands(k) {
+      d.pivot.children[0].children[0].getWorldPosition(knob);
+      camera.updateMatrixWorld(); camera.worldToLocal(knob);
+      knob.setLength(Math.min(knob.length(), 0.55));
+      const r = seg(k, 0, 0.35) * (1 - seg(k, 0.7, 1));
+      hand('R', lerp(0.3, knob.x, r), lerp(-0.62, knob.y, r), lerp(-0.25, knob.z, r), -0.5 * r);
+    },
+    cues: [[0.36, () => { d.target = d.target ? 0 : 1; audio.thud(0.55); }]],
+  });
+}
+// turn, lower yourself onto the seat and settle; a lounger then reclines
+function sitAt(pos, yaw, lie, extra = 0, spot = null, hands = null) {
   FP.stand = { pos: FP.pos.clone(), mode: FP.mode };
-  FP.seat = { pos: pos.clone(), yaw, lie, spot, extra };
+  const seat = { pos: pos.clone(), yaw, lie, spot, extra, hands };
   if (spot) spot.taken = true;
-  FP.mode = 'sit'; FP.yaw = yaw; FP.pitch = lie ? 0.25 : -0.05; FP.vel.set(0, 0, 0);
+  const upright = { ...seat, lie: false };
+  startAct({
+    dur: 1.15, label: lie ? '躺下' : '坐下', to: () => ({ eye: seatEye(upright), yaw, pitch: -0.12 }),
+    bob: (k) => -0.05 * bump(k, 0.72, 1),
+    hands: (k) => { const r = bump(k, 0.35, 0.95); if (r > 0.02) hand('R', 0.3, lerp(-0.62, -0.5, r), -0.32); },
+    onEnd() {
+      FP.seat = seat; FP.mode = 'sit';
+      if (lie) startAct({ dur: 1.2, to: () => ({ eye: seatEye(seat), yaw, pitch: 0.32 }), onEnd() { FP.mode = 'sit'; } });
+    },
+  });
+  FP.mode = 'sit'; FP.seat = upright;
 }
 function standUp() {
-  if (FP.seat && FP.seat.spot) FP.seat.spot.taken = false;
-  FP.pos.copy(FP.stand.pos); FP.mode = 'walk'; FP.seat = null;
+  const seat = FP.seat, back = FP.stand.pos.clone();
+  startAct({
+    dur: seat && seat.lie ? 1.25 : 0.85, label: '起身', to: () => ({ eye: standEye(back), pitch: -0.05 }), arc: 0.06,
+    hands: (k) => { const r = bump(k, 0, 0.55); if (r > 0.02) { hand('R', 0.32, lerp(-0.62, -0.48, r), -0.3); hand('L', -0.32, lerp(-0.62, -0.48, r), -0.3); } },
+    onEnd() { if (seat && seat.spot) seat.spot.taken = false; FP.pos.copy(back); FP.mode = 'walk'; FP.seat = null; FP.onGround = true; },
+  });
 }
-function sleep() {
-  const fade = $('#fpFade'); fade.classList.add('on');
-  setTimeout(() => {
-    const h = state.hour, night = h > 19.5 || h < 5.5;
-    state.hour = night ? 6.7 : (h + 2.5) % 24; state.timeTween = null;
-    const hh = Math.floor(state.hour), mm = Math.floor((state.hour % 1) * 60);
-    fpToast(`${night ? '一觉睡到天亮' : '小睡了一会儿'}，现在是 ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}。`, 4);
-    fade.classList.remove('on');
-  }, 1300);
+// lie down, eyes slowly close, time passes, wake up and get out of bed
+function sleep(s) {
+  const head = s.head || s.pos, foot = s.foot || s.pos;
+  const lieEye = head.clone().add(_up(0.2)), lieYaw = yawTo(head, foot);
+  const back = FP.pos.clone(), mode0 = FP.mode;
+  FP.mode = 'sit'; FP.seat = { pos: head.clone(), lie: true, extra: 0 };
+  startAct({
+    dur: 1.5, label: '躺到床上', to: () => ({ eye: lieEye, yaw: lieYaw, pitch: 1.15 }), arc: 0.12,
+    onEnd: () => startAct({
+      dur: 3.0, label: '睡着了…', to: () => ({ eye: lieEye, yaw: lieYaw, pitch: 1.15 }),
+      lids: (k) => Math.max(0.55 * bump(k, 0, 0.3), 0.8 * bump(k, 0.32, 0.6), seg(k, 0.62, 0.95)),
+      onEnd() {
+        const h = state.hour, night = h > 19.5 || h < 5.5;
+        state.hour = night ? 6.7 : (h + 2.5) % 24; state.timeTween = null;
+        const hh = Math.floor(state.hour), mm = Math.floor((state.hour % 1) * 60);
+        setTimeout(() => fpToast(`${night ? '一觉睡到天亮' : '小睡了一会儿'}，现在是 ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}。`, 4), 900);
+        startAct({
+          dur: 2.4, label: '醒来', to: () => ({ eye: lieEye, yaw: lieYaw, pitch: 1.15 }),
+          lids: (k) => 1 - Math.max(seg(k, 0.25, 0.5) * (1 - bump(k, 0.55, 0.7) * 0.7), seg(k, 0.72, 0.95)),
+          onEnd: () => startAct({
+            dur: 1.4, to: () => ({ eye: standEye(back), yaw: angTo(lieYaw, lieYaw + Math.PI), pitch: -0.05 }), arc: 0.18,
+            onEnd() { FP.pos.copy(back); FP.mode = mode0 === 'sit' ? 'walk' : mode0; FP.seat = null; setLids(0); },
+          }),
+        });
+      },
+    }),
+  });
+}
+// reach over the counter, take the drink, sip, lower it
+const BAR_ITEMS = [
+  ['coconut', '老板递来一个冰镇椰子，插着一根吸管。'], ['coconut', '老板说：今天的椰子是早上刚从树上摘的。'],
+  ['juice', '你点了一杯鲜榨菠萝汁，杯沿还挂着一片青柠。'], ['corn', '你买了一串烤玉米，咬一口，焦香带甜。'],
+];
+function buyAtBar(s) {
+  const [item, line] = pick(BAR_ITEMS), eye0 = camera.position.clone(), yaw = yawTo(FP.pos, s.pos);
+  startAct({
+    dur: 4.2, label: item === 'corn' ? '吃烤玉米' : item === 'juice' ? '喝果汁' : '喝椰子', to: () => ({ eye: eye0, yaw, pitch: -0.08 }),
+    pitchAdd: (k) => (item === 'corn' ? 0.08 : 0.32) * bump(k, 0.42, 0.86),
+    hands(k) {
+      const reach = seg(k, 0, 0.16) * (1 - seg(k, 0.22, 0.38)), toMouth = seg(k, 0.3, 0.45) * (1 - seg(k, 0.82, 0.95));
+      const x = lerp(lerp(0.3, 0.14, reach), 0.07, toMouth), y = lerp(lerp(-0.62, -0.16, reach), -0.24, toMouth), z = lerp(lerp(-0.3, -0.62, reach), -0.26, toMouth);
+      if (k < 0.97) hand('R', x, y, z, item === 'corn' ? -0.2 : 0.2);
+      if (k > 0.2 && k < 0.95) ARMS.hold = item;
+    },
+    cues: [[0.2, () => fpToast(line)], [0.5, () => { if (item !== 'corn') audio.splash(0.05); }]],
+  });
+}
+// hand over hand up the rungs, then step onto the deck
+function climbLadder(s) {
+  const out = new THREE.Vector3(s.pos.x - s.top.x, 0, s.pos.z - s.top.z).normalize();
+  const face = yawTo(s.pos, s.top), W = waterAt(s.pos.x, s.pos.z, U.time.value);
+  const base = new THREE.Vector3(s.pos.x + out.x * 0.15, W + 0.15, s.pos.z + out.z * 0.15);
+  const topEye = new THREE.Vector3(base.x, s.top.y + 0.6, base.z);
+  audio.splash(0.3);
+  startAct({
+    dur: 0.7, label: '爬梯子', to: () => ({ eye: base, yaw: face, pitch: 0.15 }),
+    hands: (k) => { hand('R', 0.14, lerp(-0.4, 0.05, k), -0.32, -0.3); hand('L', -0.14, lerp(-0.4, -0.12, k), -0.32, -0.3); },
+    onEnd: () => startAct({
+      dur: 2.4, label: '爬梯子', to: () => ({ eye: topEye, yaw: face, pitch: 0.05 }), ease: (k) => k,
+      bob: (k) => { const u = (k * 4) % 1; return -0.05 * Math.sin(Math.PI * u) + (ease(u) - u) * 0.12; },
+      hands(k) {   // the hand that moves reaches up a rung; the other stays put and slides down as you rise
+        const n = Math.floor(k * 4), u = (k * 4) % 1, hi = 0.08, lo = -0.4;
+        const mover = n % 2 ? 'L' : 'R', still = mover === 'R' ? 'L' : 'R', sx = (sd) => (sd === 'R' ? 0.14 : -0.14);
+        hand(mover, sx(mover), lerp(lo, hi, ease(u)), -0.32 + 0.06 * bump(u, 0, 1), -0.3);
+        hand(still, sx(still), lerp(hi, lo, u), -0.32, -0.3);
+      },
+      cues: [[0.25, () => audio.footstep('wood')], [0.5, () => audio.footstep('wood')], [0.75, () => audio.footstep('wood')]],
+      onEnd: () => startAct({
+        dur: 0.8, to: () => ({ eye: standEye(s.top), yaw: face, pitch: -0.05 }), arc: 0.1,
+        hands: (k) => { const r = 1 - seg(k, 0.3, 0.8); if (r > 0.02) { hand('R', 0.18, lerp(-0.55, -0.4, r), -0.35, -0.6); hand('L', -0.18, lerp(-0.55, -0.4, r), -0.35, -0.6); } },
+        onEnd() { FP.pos.copy(s.top); FP.mode = 'walk'; FP.onGround = true; audio.footstep('wood'); },
+      }),
+    }),
+  });
+  FP.mode = 'walk';
+}
+function descendLadder(s) {
+  const out = new THREE.Vector3(s.pos.x - s.top.x, 0, s.pos.z - s.top.z).normalize();
+  const face = yawTo(s.pos, s.top), W = waterAt(s.pos.x, s.pos.z, U.time.value);
+  const base = new THREE.Vector3(s.pos.x + out.x * 0.15, W - 0.05, s.pos.z + out.z * 0.15);
+  startAct({
+    dur: 0.8, label: '下梯子', to: () => ({ eye: new THREE.Vector3(base.x, s.top.y + 0.6, base.z), yaw: face, pitch: 0.1 }), arc: 0.15,
+    onEnd: () => startAct({
+      dur: 1.8, label: '下梯子', to: () => ({ eye: base, yaw: face, pitch: 0.1 }), ease: (k) => k,
+      bob: (k) => -0.04 * Math.sin(Math.PI * ((k * 3) % 1)),
+      hands(k) { const n = Math.floor(k * 3), u = (k * 3) % 1, a = n % 2 ? 'L' : 'R', b = a === 'R' ? 'L' : 'R'; hand(a, a === 'R' ? 0.14 : -0.14, lerp(0.08, -0.4, ease(u)), -0.32, -0.3); hand(b, b === 'R' ? 0.14 : -0.14, lerp(-0.4, 0.08, u), -0.32, -0.3); },
+      cues: [[0.85, () => { audio.splash(0.5); emitSplash(base.x, W, base.z, 10, { up: 1.2, spread: 0.5, life: 0.6, size: 0.7 }); }]],
+      onEnd() { FP.pos.set(base.x, base.y - FP_EYE, base.z); FP.mode = 'swim'; },
+    }),
+  });
+}
+// grab the edge, pull up onto a knee, stand
+function pullUp(x, h, z) {
+  const p0 = FP.pos.clone(), W = waterAt(p0.x, p0.z, U.time.value), face = yawTo(p0, { x, z });
+  const edge = new THREE.Vector3(lerp(p0.x, x, 0.55), h + 0.55, lerp(p0.z, z, 0.55)), grab = new THREE.Vector3(p0.x, W + 0.05, p0.z);
+  audio.splash(0.4);
+  startAct({
+    dur: 0.55, label: '爬上去', to: () => ({ eye: grab, yaw: face, pitch: 0.18 }),
+    hands: (k) => { hand('R', 0.2, lerp(-0.45, Math.min(0.1, h - W - 0.6), k), -0.42, -0.9); hand('L', -0.2, lerp(-0.45, Math.min(0.1, h - W - 0.6), k), -0.42, -0.9); },
+    onEnd: () => startAct({
+      dur: 0.9, label: '爬上去', to: () => ({ eye: edge, yaw: face, pitch: -0.25 }), ease: (k) => seg(k, 0.1, 1),
+      bob: (k) => -0.06 * bump(k, 0, 0.3),
+      hands: (k) => { const y = lerp(Math.min(0.1, h - W - 0.6), -0.5, seg(k, 0.1, 0.9)); hand('R', 0.2, y, -0.4, -1.1); hand('L', -0.2, y, -0.4, -1.1); },
+      cues: [[0.3, () => { audio.splash(0.3); emitSplash(FP.pos.x, W, FP.pos.z, 12, { up: 1.0, spread: 0.6, life: 0.6, size: 0.7 }); }]],
+      onEnd: () => startAct({
+        dur: 0.75, to: () => ({ eye: standEye(new THREE.Vector3(x, h, z)), yaw: face, pitch: -0.05 }),
+        onEnd() { FP.pos.set(x, h, z); FP.mode = 'walk'; FP.onGround = true; audio.footstep('wood'); },
+      }),
+    }),
+  });
+  FP.mode = 'walk';
 }
 function greet(w) {
   w.wait = 4; w.look = Math.atan2(FP.pos.x - w.pos.x, FP.pos.z - w.pos.z); w.waveArm = true;
-  fpToast(`${w.name}：${pick(GREETINGS)}`, 4);
+  startAct({
+    dur: 1.9,
+    hands: (k, t) => { const up = seg(k, 0, 0.18) * (1 - seg(k, 0.82, 1)); if (up > 0.01) hand('R', 0.24 + Math.sin(t * 11) * 0.055 * bump(k, 0.15, 0.85), lerp(-0.62, 0.02, up), lerp(-0.3, -0.45, up), -0.15); },
+    cues: [[0.3, () => fpToast(`${w.name}：${pick(GREETINGS)}`, 4)]],
+  });
 }
+// step (or climb out of the water) into the rowboat; it rocks under your weight
 function takeBoat(b) {
-  b.type = 'player'; b.v = 0; b.yaw = b.g.rotation.y;
-  FP.boat = b; FP.mode = 'boat'; FP.lastBoatYaw = b.yaw; FP.yaw = b.yaw - Math.PI / 2; FP.pitch = -0.08;
-  fpToast('W/S 划桨前进后退，A/D 转向；靠近帆船或渔船按 E 可以登船。', 5);
+  const fromWater = FP.mode === 'swim';
+  startAct({
+    dur: fromWater ? 1.4 : 1.0, label: '上船', to: () => ({ eye: boatEye(b, RIDE_SEAT.row), yaw: b.g.rotation.y - Math.PI / 2, pitch: -0.12 }), arc: fromWater ? 0.35 : 0.3,
+    hands: (k) => { if (fromWater) { const r = bump(k, 0, 0.8); hand('R', 0.22, lerp(-0.6, -0.25, r), -0.4, -0.9); hand('L', -0.22, lerp(-0.6, -0.25, r), -0.4, -0.9); } },
+    cues: [[0.75, () => { b.rock = 0.1; audio.thud(0.35); }]],
+    onEnd() {
+      b.type = 'player'; b.v = 0; b.yaw = b.g.rotation.y;
+      FP.boat = b; FP.mode = 'boat'; FP.lastBoatYaw = b.yaw; FP.yaw = b.yaw - Math.PI / 2;
+      fpToast('W/S 划桨前进后退，A/D 转向；靠近帆船或渔船按 E 可以登船。', 5);
+    },
+  });
+  FP.mode = 'walk';
 }
-function leaveBoat(silent) {
+function leaveBoat(instant) {
   const b = FP.boat; if (!b) return;
-  b.type = 'moored'; b.x = b.g.position.x; b.z = b.g.position.z; b.yaw = b.g.rotation.y;
+  b.type = 'moored'; b.x = b.g.position.x; b.z = b.g.position.z; b.yaw = b.g.rotation.y; b.rock = 0.08;
   FP.boat = null;
-  // step onto a nearby deck if there is one, otherwise into the water
+  // step onto a nearby deck if there is one, otherwise over the side into the water
   const p = b.g.position, W = waterAt(p.x, p.z, U.time.value);
   let spot = null;
   for (let r = 1.2; r <= 3.0 && !spot; r += 0.6) for (let k = 0; k < 16 && !spot; k++) {
     const a = (k / 16) * TAU, x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r, g = groundAt(x, z, W + 1.6);
     if (g.y > W - 0.1) spot = new THREE.Vector3(x, g.y, z);
   }
-  if (spot) { FP.pos.copy(spot); FP.mode = 'walk'; }
-  else { const sx = Math.cos(b.yaw + Math.PI / 2), sz = -Math.sin(b.yaw + Math.PI / 2); FP.pos.set(p.x + sx * 1.6, W - FP_EYE + 0.1, p.z + sz * 1.6); FP.mode = 'swim'; if (!silent) audio.splash(0.8); }
-  FP.vel.set(0, 0, 0);
+  const sx = Math.cos(b.yaw + Math.PI / 2), sz = -Math.sin(b.yaw + Math.PI / 2);
+  const swimTo = new THREE.Vector3(p.x + sx * 1.6, W - FP_EYE + 0.1, p.z + sz * 1.6);
+  const done = () => { if (spot) { FP.pos.copy(spot); FP.mode = 'walk'; FP.onGround = true; } else { FP.pos.copy(swimTo); FP.mode = 'swim'; } FP.vel.set(0, 0, 0); };
+  FP.mode = 'walk';
+  if (instant) { done(); return; }
+  if (spot) startAct({ dur: 0.9, label: '下船', to: () => ({ eye: standEye(spot), yaw: yawTo(p, spot), pitch: -0.1 }), arc: 0.3, cues: [[0.85, () => audio.footstep('wood')]], onEnd: done });
+  else startAct({
+    dur: 1.0, label: '翻身下水', to: () => ({ eye: standEye(swimTo).add(_up(-0.2)), yaw: yawTo(p, swimTo), pitch: -0.1 }), arc: 0.15,
+    pitchAdd: (k) => -0.45 * bump(k, 0.1, 0.9),
+    hands: (k) => { const r = bump(k, 0, 0.6); if (r > 0.02) { hand('R', 0.25, -0.45, -0.38, -0.8); hand('L', -0.25, -0.45 + 0.05 * r, -0.38, -0.8); } },
+    cues: [[0.72, () => { audio.splash(0.8); emitSplash(swimTo.x, W, swimTo.z, 18, { up: 1.8, spread: 0.8, life: 0.8, size: 0.9 }); }]],
+    onEnd: done,
+  });
 }
+// climb over the rail of a passing sailboat or the fishing boat
 function boardRide(b) {
   if (FP.mode === 'boat') leaveBoat(true);
-  FP.ride = b; FP.mode = 'ride'; FP.lastBoatYaw = b.g.rotation.y;
-  fpToast(`你上了${b.name}。随船绕岛，按 E 跳回海里。`, 5);
+  startAct({
+    dur: 1.3, label: '登船', to: () => ({ eye: rideEye(b), yaw: b.g.rotation.y - Math.PI / 2 + 0.6, pitch: -0.08 }), arc: 0.55,
+    hands: (k) => { const r = bump(k, 0, 0.75); if (r > 0.02) { hand('R', 0.22, lerp(-0.6, -0.2, r), -0.42, -0.9); hand('L', -0.22, lerp(-0.6, -0.22, r), -0.42, -0.9); } },
+    cues: [[0.8, () => audio.thud(0.4)]],
+    onEnd() { FP.ride = b; FP.mode = 'ride'; FP.lastBoatYaw = b.g.rotation.y; fpToast(`你上了${b.name}。随船绕岛，按 E 跳回海里。`, 5); },
+  });
+  FP.mode = 'walk';
 }
+// stand on the rail and jump
 function leaveRide() {
-  const b = FP.ride; FP.ride = null;
+  const b = FP.ride; FP.ride = null; FP.mode = 'walk';
   const p = b.g.position, yaw = b.g.rotation.y, sx = Math.cos(yaw + Math.PI / 2), sz = -Math.sin(yaw + Math.PI / 2);
-  const W = waterAt(p.x + sx * 2.4, p.z + sz * 2.4, U.time.value);
-  FP.pos.set(p.x + sx * 2.4, W - FP_EYE + 0.1, p.z + sz * 2.4); FP.mode = 'swim'; FP.vel.set(0, -0.5, 0);
-  audio.splash(1);
-  emitSplash(FP.pos.x, 0.1, FP.pos.z, 26, { up: 2.2, spread: 0.9, life: 0.9, size: 1 });
+  const W = waterAt(p.x + sx * 2.6, p.z + sz * 2.6, U.time.value), land = new THREE.Vector3(p.x + sx * 2.6, W - 0.35, p.z + sz * 2.6);
+  startAct({
+    dur: 1.15, label: '跳水', to: () => ({ eye: land, yaw: yawTo(p, land), pitch: -0.15 }), arc: 1.3, ease: (k) => k,
+    pitchAdd: (k) => -0.5 * bump(k, 0.35, 1),
+    hands: (k) => { const r = bump(k, 0, 0.9); if (r > 0.02) { hand('R', 0.32, lerp(-0.6, 0.0, r), -0.35, -0.2); hand('L', -0.32, lerp(-0.6, 0.0, r), -0.35, -0.2); } },
+    cues: [[0.9, () => { audio.splash(1); emitSplash(land.x, W, land.z, 26, { up: 2.2, spread: 0.9, life: 0.9, size: 1 }); }]],
+    onEnd() { FP.pos.set(land.x, land.y - FP_EYE, land.z); FP.mode = 'swim'; FP.vel.set(0, -0.8, 0); },
+  });
 }
-function fpInteract() { const it = nearestInteraction(); if (it) it.act(); }
+function fpInteract() { if (FP.act) return; const it = nearestInteraction(); if (it) it.act(); }
 
 // ---- per-frame update ----
-const RIDE_SEAT = { sail: new THREE.Vector3(-1.35, 0.42, 0.2), motor: new THREE.Vector3(0.85, 0.15, 0), row: new THREE.Vector3(-0.25, 0.02, 0) };
 function updateFP(dt, t) {
   if (!FP.active) return;
   const K = FP.keys;
@@ -4336,18 +4528,23 @@ function updateFP(dt, t) {
   fwd = clamp(fwd, -1, 1); str = clamp(str, -1, 1);
   const run = K.ShiftLeft || K.ShiftRight || FP.run;
   const fx = -Math.sin(FP.yaw), fz = -Math.cos(FP.yaw), rx = Math.cos(FP.yaw), rz = -Math.sin(FP.yaw);
-  let eye;
+  let eye = FP.act ? stepAct(dt, t) : null;   // an action in progress drives the camera
 
+  if (!eye) {
   if (FP.mode === 'sit') {
-    if (Math.abs(fwd) > 0.3 || Math.abs(str) > 0.3) standUp();
-    else eye = FP.seat.pos.clone().add(new THREE.Vector3(0, FP.seat.lie ? 0.45 : 0.78 + FP.seat.extra, 0));
+    if (!FP.act && (Math.abs(fwd) > 0.3 || Math.abs(str) > 0.3)) standUp();
+    eye = seatEye(FP.seat);
+    if (FP.seat.hands === 'warm' && !FP.act) {   // palms held out to the fire
+      const w = Math.sin(t * 0.9) * 0.015;
+      hand('R', 0.15, -0.2 + w, -0.48, -1.2); hand('L', -0.15, -0.2 - w, -0.48, -1.2);
+    }
   }
   if (FP.mode === 'ride') {
     const b = FP.ride, yaw = b.g.rotation.y;
     FP.yaw += yaw - FP.lastBoatYaw; FP.lastBoatYaw = yaw;
-    b.g.updateMatrixWorld();
-    eye = (b.type === 'sail' ? RIDE_SEAT.sail : RIDE_SEAT.motor).clone().applyMatrix4(b.g.matrixWorld).add(new THREE.Vector3(0, 0.85, 0));
+    eye = rideEye(b);
     FP.pos.set(eye.x, eye.y - FP_EYE, eye.z);
+    hand('R', 0.34, -0.42, -0.3, -0.4);   // one hand on the rail
   }
   if (FP.mode === 'boat') {
     const b = FP.boat;
@@ -4360,12 +4557,22 @@ function updateFP(dt, t) {
     const y = waveH(p.x, p.z, t);
     p.y = y - 0.02;
     b.g.rotation.order = 'YXZ'; b.g.rotation.y = b.yaw;
-    b.g.rotation.x = Math.sin(t * 1.1 + b.ph) * 0.04; b.g.rotation.z = Math.sin(t * 0.9 + b.ph * 2) * 0.035 - b.v * 0.01;
+    b.rock = (b.rock || 0) * Math.exp(-dt * 1.6);
+    b.g.rotation.x = Math.sin(t * 1.1 + b.ph) * 0.04; b.g.rotation.z = Math.sin(t * 0.9 + b.ph * 2) * 0.035 - b.v * 0.01 + b.rock * Math.sin(t * 6.5);
     FP.yaw += b.yaw - FP.lastBoatYaw; FP.lastBoatYaw = b.yaw;
     if (Math.abs(b.v) > 0.5 && Math.random() < dt * 8) emitWake(p.x - hx * 1.3, p.z - hz * 1.3, -hz * 0.3 * (Math.random() < 0.5 ? 1 : -1), hx * 0.3, 0.7, 1.8);
-    if (Math.abs(fwd) > 0.1) { FP.oar = (FP.oar || 0) + dt; if (FP.oar > 1.1) { FP.oar = 0; audio.splash(0.25); } }
-    b.g.updateMatrixWorld();
-    eye = RIDE_SEAT.row.clone().applyMatrix4(b.g.matrixWorld).add(new THREE.Vector3(0, 0.85, 0));
+    // rowing: both hands pull the oars through a stroke; the blades dip and splash at the catch
+    const effort = Math.max(Math.abs(fwd), Math.abs(str) * 0.7);
+    if (effort > 0.1) FP.rowPh = (FP.rowPh || 0) + dt * TAU / 1.1 * Math.sign(fwd || 1);
+    const ph = FP.rowPh || 0, c = Math.cos(ph), sn = Math.sin(ph);
+    if (effort > 0.1 && Math.cos(ph - dt * TAU / 1.1) < 0.98 && c >= 0.98) { audio.splash(0.25); for (const sd of [-1, 1]) emitSplash(p.x + Math.cos(b.yaw - sd * Math.PI / 2) * 1.2, y, p.z - Math.sin(b.yaw - sd * Math.PI / 2) * 1.2, 5, { up: 0.8, spread: 0.3, life: 0.5, size: 0.5 }); }
+    for (const [sd, m] of [['L', -1], ['R', 1]]) {
+      const hx = m * (0.17 - 0.03 * c), hy = -0.26 + 0.05 * sn, hz = -0.42 - 0.13 * c;
+      hand(sd, hx, hy, hz, -0.75);
+      placeOar(ARMS['oar' + sd], _fv.set(hx - m * 0.06, hy + 0.01, hz - 0.03), _fq2.set(m * 1.25, -0.85 + 0.14 * sn, -1.45 + 0.45 * c));
+    }
+    ARMS.oars = true;
+    eye = boatEye(b, RIDE_SEAT.row);
     FP.pos.set(eye.x, eye.y - FP_EYE, eye.z);
   }
 
@@ -4417,6 +4624,19 @@ function updateFP(dt, t) {
     if (!swim && FP.onGround && FP.stepDist > (run ? 1.05 : 0.72)) { FP.stepDist = 0; audio.footstep(FP.surf); }
     if (swim && FP.stepDist > 1.4) { FP.stepDist = 0; audio.splash(0.15); }
     eye = new THREE.Vector3(FP.pos.x, FP.pos.y + FP_EYE + (swim ? Math.sin(t * 1.6) * 0.03 : Math.sin(FP.bob * 2) * 0.035 * Math.min(1, sp)), FP.pos.z);
+    // breaststroke: glide forward, sweep out, pull in to the chest, reach again
+    const stroke = swim ? Math.max(sp / 1.2, Math.abs(FP.vel.y) * 0.4) : 0;
+    FP.swimK = lerp(FP.swimK || 0, stroke > 0.25 ? 1 : 0, Math.min(1, dt * 4));
+    if (FP.swimK > 0.05) {
+      FP.swimPh = ((FP.swimPh || 0) + dt * (0.55 + 0.35 * Math.min(1, stroke))) % 1;
+      const u = FP.swimPh, out = seg(u, 0, 0.35), inn = seg(u, 0.35, 0.6), reach = seg(u, 0.6, 1);
+      let x = lerp(0.05, 0.4, out), y = lerp(-0.12, -0.2, out), z = lerp(-0.56, -0.34, out);
+      x = lerp(x, 0.1, inn); y = lerp(y, -0.3, inn); z = lerp(z, -0.22, inn);
+      x = lerp(x, 0.05, reach); y = lerp(y, -0.12, reach); z = lerp(z, -0.56, reach);
+      const dip = (1 - FP.swimK) * 0.6;
+      hand('R', x, y - dip, z, -0.15 - 0.4 * out * (1 - inn)); hand('L', -x, y - dip, z, -0.15 - 0.4 * out * (1 - inn));
+    }
+  }
   }
 
   // doors swing smoothly; closed doors collide
@@ -4443,13 +4663,14 @@ function updateFP(dt, t) {
   if (snow) { snow.visible = FP.under > 0.1; snow.position.copy(eye); }
 
   // prompt, toast, map, status
-  FP.prompt = nearestInteraction();
+  FP.prompt = FP.act ? null : nearestInteraction();
   const pr = $('#fpPrompt');
   if (FP.prompt) { pr.hidden = false; $('#fpPromptText').textContent = FP.prompt.label; } else pr.hidden = true;
   if (FP.toastT > 0) { FP.toastT -= dt; if (FP.toastT <= 0) $('#fpToast').hidden = true; }
   if ((FP.mapT -= dt) < 0) { FP.mapT = 0.12; drawMap(); }
   const label = { walk: FP.surf === 'water' ? '涉水' : FP.surf === 'wood' ? '木栈道' : FP.surf === 'grass' ? '草地' : '沙滩', swim: FP.under > 0.5 ? `潜水 · 水深 ${(camW - eye.y).toFixed(1)} m` : '游泳', boat: '划船', ride: '乘船', sit: FP.seat && FP.seat.lie ? '躺着' : '坐着' }[FP.mode];
-  $('#fpStatus').textContent = label;
+  $('#fpStatus').textContent = (FP.act && FP.act.label) || label;
+  updateArms(dt);
 }
 
 // floating particles that catch the light underwater
@@ -4503,12 +4724,12 @@ function setupFPInput() {
   addEventListener('mouseup', () => { FP.mouseDown = false; });
   addEventListener('mousemove', (e) => {
     if (!FP.active || IS_TOUCH) return;
-    if (FP.locked) look(e.movementX, e.movementY, 0.0022);
-    else if (FP.mouseDown) look(e.movementX, e.movementY, 0.004);
+    if (FP.locked) { if (performance.now() - FP.lockAt < 120 || Math.abs(e.movementX) > 220 || Math.abs(e.movementY) > 220) return; look(e.movementX, e.movementY, 0.0022); }   // some browsers report a jump right after locking
+    else if (FP.mouseDown && Math.abs(e.movementX) < 220 && Math.abs(e.movementY) < 220) look(e.movementX, e.movementY, 0.004);
   });
   document.addEventListener('pointerlockchange', () => {
     FP.locked = document.pointerLockElement === canvas;
-    if (FP.locked) FP.hadLock = true;
+    if (FP.locked) { FP.hadLock = true; FP.lockAt = performance.now(); }
     $('#app').classList.toggle('locked', FP.locked);
     if (FP.active && !IS_TOUCH && !FP.dragLook) $('#fpStart').hidden = FP.locked;
     if (!FP.locked) FP.keys = {};
@@ -4544,6 +4765,129 @@ function setupFPInput() {
   $('#fpStart').addEventListener('click', (e) => { if (!e.target.closest('#fpBack')) lockMouse(); });
   $('#fpBack').addEventListener('click', () => setCamMode('orbit'));
 }
+
+
+// =====================================================================
+//  First-person actions: the player's own arms, hand-held props, and
+//  short eased timelines that drive the camera through each interaction.
+// =====================================================================
+const ARMS = { root: null, L: null, R: null, hold: null, oars: false, oarL: null, oarR: null, props: {} };
+const ARM_ELBOW = { L: new THREE.Vector3(-0.3, -0.58, -0.1), R: new THREE.Vector3(0.3, -0.58, -0.1) };
+const ARM_REST = { L: new THREE.Vector3(-0.32, -0.9, -0.15), R: new THREE.Vector3(0.32, -0.9, -0.15) };
+const _ad = new THREE.Vector3(), _aq = new THREE.Quaternion(), _aq2 = new THREE.Quaternion(), _fwdZ = new THREE.Vector3(0, 0, -1), _ax = new THREE.Vector3(1, 0, 0);
+
+function buildArms() {
+  const skin = new THREE.MeshStandardMaterial({ color: '#c99470', roughness: 0.62 });
+  const cuff = new THREE.MeshStandardMaterial({ color: '#2f6f8a', roughness: 0.9 });
+  ARMS.root = new THREE.Group(); ARMS.root.visible = false;
+  camera.add(ARMS.root);
+  // forearm along -Z, from the elbow (z = 0) to the wrist (z = -1), scaled to length each frame
+  const fore = xf(new THREE.CylinderGeometry(0.031, 0.04, 1, 12, 1), { r: [Math.PI / 2, 0, 0], p: [0, 0, -0.5] });
+  const sleeve = xf(new THREE.CylinderGeometry(0.06, 0.062, 1, 10, 1), { r: [Math.PI / 2, 0, 0], p: [0, 0, -0.5] });
+  for (const side of ['L', 'R']) {
+    const m = side === 'L' ? -1 : 1;
+    const elbow = new THREE.Group(), wrist = new THREE.Group();
+    const arm = new THREE.Mesh(fore, skin), sl = new THREE.Mesh(sleeve, cuff);
+    sl.scale.set(1, 1, 0.3);
+    elbow.add(arm, sl);
+    // hand: palm, curled fingers, thumb on the inside
+    const parts = [xf(new THREE.SphereGeometry(1, 14, 10), { p: [0, 0, -0.05], s: [0.045, 0.018, 0.056] })];          // palm
+    for (let f = 0; f < 4; f++) {                                                                                        // four slightly curled fingers
+      const fx = (f - 1.5) * 0.0185, len = [0.042, 0.05, 0.048, 0.038][f] * (m > 0 ? 1 : 1);
+      parts.push(xf(new THREE.CapsuleGeometry(0.0085, len, 3, 8), { r: [Math.PI / 2 + 0.35, 0, 0], p: [fx * m, -0.008, -0.1 - len * 0.45] }));
+    }
+    parts.push(xf(new THREE.CapsuleGeometry(0.0105, 0.038, 3, 8), { r: [Math.PI / 2, 0.75 * m, 0], p: [-0.045 * m, 0.002, -0.055] }));   // thumb
+    const hand = new THREE.Group(); hand.add(new THREE.Mesh(merge(parts), skin));
+    wrist.add(hand);
+    ARMS.root.add(elbow, wrist);
+    ARMS[side] = { elbow, wrist, hand, arm, cur: ARM_REST[side].clone(), want: new THREE.Vector3(), on: false, curl: 0, curlCur: 0 };
+  }
+  for (const o of ARMS.root.children) o.traverse((c) => { c.castShadow = false; c.receiveShadow = true; c.renderOrder = 3; });
+  // props held in the right hand
+  const R = ARMS.R.hand, P = ARMS.props;
+  P.coconut = new THREE.Group();
+  P.coconut.add(new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), new THREE.MeshStandardMaterial({ color: '#6f8f35', roughness: 0.55 })));
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.012, 12), new THREE.MeshStandardMaterial({ color: '#efe6cf', roughness: 0.8 })); top.position.y = 0.071; P.coconut.add(top);
+  const straw = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.16, 6), new THREE.MeshStandardMaterial({ color: '#f07f9c', roughness: 0.5 })); straw.position.set(0.012, 0.13, 0.01); straw.rotation.z = -0.25; P.coconut.add(straw);
+  P.juice = new THREE.Group();
+  P.juice.add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.034, 0.13, 14, 1, true), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.05, transparent: true, opacity: 0.35, side: THREE.DoubleSide })));
+  const juice = new THREE.Mesh(new THREE.CylinderGeometry(0.037, 0.032, 0.1, 14), new THREE.MeshStandardMaterial({ color: '#ffc23a', roughness: 0.3 })); juice.position.y = -0.012; P.juice.add(juice);
+  const lime = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.006, 12), new THREE.MeshStandardMaterial({ color: '#9bd04a', roughness: 0.6 })); lime.position.set(0.035, 0.06, 0); lime.rotation.z = 1.3; P.juice.add(lime);
+  P.corn = new THREE.Group();
+  const cob = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.14, 4, 10), new THREE.MeshStandardMaterial({ color: '#e9b941', roughness: 0.7 })); cob.rotation.z = Math.PI / 2 - 0.3; P.corn.add(cob);
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.14, 5), new THREE.MeshStandardMaterial({ color: '#c9a979', roughness: 0.9 })); stick.position.set(-0.1, -0.03, 0); stick.rotation.z = Math.PI / 2 - 0.3; P.corn.add(stick);
+  for (const k in P) { P[k].scale.setScalar(0.8); P[k].position.set(0, 0.05, -0.11); P[k].visible = false; R.add(P[k]); P[k].traverse((c) => { c.renderOrder = 3; }); }
+  // oars for the rowboat, held by both hands
+  const oarGeo = xf(new THREE.CylinderGeometry(0.022, 0.022, 1, 7), { r: [Math.PI / 2, 0, 0], p: [0, 0, -0.5] });
+  const bladeGeo = xf(new THREE.BoxGeometry(0.14, 0.012, 0.42), { p: [0, 0, -1.02] });
+  for (const side of ['L', 'R']) {
+    const g = new THREE.Group(), wood = new THREE.MeshStandardMaterial({ color: '#c79a64', roughness: 0.75 });
+    g.add(new THREE.Mesh(oarGeo, wood), new THREE.Mesh(bladeGeo, wood));
+    g.visible = false; ARMS.root.add(g); ARMS['oar' + side] = g;
+  }
+}
+// Ask for a hand position this frame (camera space: x right, y up, -z ahead). curl < 0 bends the wrist back (palm forward).
+function hand(side, x, y, z, curl = 0) { const a = ARMS[side]; a.want.set(x, y, z); a.on = true; a.curl = curl; }
+function updateArms(dt) {
+  if (!ARMS.root) return;
+  ARMS.root.visible = FP.active;
+  const k = 1 - Math.exp(-dt * 18);
+  for (const side of ['L', 'R']) {
+    const a = ARMS[side];
+    a.cur.lerp(a.on ? a.want : ARM_REST[side], k);
+    a.curlCur = lerp(a.curlCur, a.on ? a.curl : 0, k);
+    const show = a.on || a.cur.distanceTo(ARM_REST[side]) > 0.06;
+    a.elbow.visible = a.wrist.visible = show;
+    if (show) {
+      _ad.subVectors(a.cur, ARM_ELBOW[side]); const len = _ad.length(); _ad.divideScalar(len || 1);
+      _aq.setFromUnitVectors(_fwdZ, _ad);
+      a.elbow.position.copy(ARM_ELBOW[side]); a.elbow.quaternion.copy(_aq); a.arm.scale.z = len;
+      a.wrist.position.copy(a.cur); a.wrist.quaternion.copy(_aq).multiply(_aq2.setFromAxisAngle(_ax, a.curlCur));
+    }
+    a.on = false;
+  }
+  for (const k2 in ARMS.props) ARMS.props[k2].visible = ARMS.hold === k2;
+  ARMS.hold = null;
+  ARMS.oarL.visible = ARMS.oarR.visible = ARMS.oars;
+  ARMS.oars = false;
+}
+function placeOar(g, from, to) { g.position.copy(from); _ad.subVectors(to, from); g.scale.set(1, 1, _ad.length()); g.quaternion.setFromUnitVectors(_fwdZ, _ad.normalize()); }
+
+// ---- timelines ----
+const ease = (t) => t * t * (3 - 2 * t);
+const seg = (k, a, b) => ease(clamp((k - a) / (b - a), 0, 1));            // eased 0..1 inside [a, b]
+const bump = (k, a, b) => Math.sin(Math.PI * clamp((k - a) / (b - a), 0, 1));
+const angTo = (from, to) => from + Math.atan2(Math.sin(to - from), Math.cos(to - from));
+// o: { dur, to(k) -> {eye, yaw?, pitch?} (omit for hand-only actions), arc, hands(k, t), pitchAdd(k), lids(k), cues: [[k, fn]], onEnd }
+function startAct(o) {
+  FP.act = { t: 0, from: { eye: (chainEye || camera.position).clone(), yaw: FP.yaw, pitch: FP.pitch }, cues: [], arc: 0, ...o };
+  FP.act.cues = FP.act.cues.map(([k, fn]) => ({ k, fn, done: false }));
+  FP.vel.set(0, 0, 0);
+}
+const _ae = new THREE.Vector3();
+let chainEye = null;   // where the previous step of a chained action ended
+function stepAct(dt, t) {
+  const a = FP.act;
+  a.t += FP.freezeAct ? 0 : dt;
+  const k = Math.min(1, a.t / a.dur);
+  for (const c of a.cues) if (!c.done && k >= c.k) { c.done = true; c.fn(); }
+  if (a.hands) a.hands(k, t);
+  if (a.lids) setLids(a.lids(k));
+  let eye = null;
+  if (a.to) {
+    const g = a.to(k), e = a.ease ? a.ease(k) : ease(k);
+    eye = _ae.lerpVectors(a.from.eye, g.eye, e).clone();
+    eye.y += a.arc * Math.sin(Math.PI * e) + (a.bob ? a.bob(k) : 0);
+    if (g.yaw !== undefined) FP.yaw = lerp(a.from.yaw, angTo(a.from.yaw, g.yaw), e);
+    if (g.pitch !== undefined) FP.pitch = lerp(a.from.pitch, g.pitch, e);
+    if (a.pitchAdd) FP.pitch += a.pitchAdd(k);
+    FP.pos.set(eye.x, eye.y - FP_EYE, eye.z);
+  }
+  if (k >= 1 && FP.act === a) { FP.act = null; chainEye = eye; if (a.onEnd) a.onEnd(); chainEye = null; }
+  return eye;
+}
+function setLids(v) { const el = $('#fpLids'); if (el) el.style.setProperty('--lid', clamp(v, 0, 1).toFixed(3)); }
+function cancelAct() { FP.act = null; setLids(0); }
 
 
 // =====================================================================
@@ -4751,29 +5095,53 @@ function applyViewShift(dt) {
   camera.setViewOffset(innerWidth, innerHeight, 0, viewShift, innerWidth, innerHeight);
 }
 function fitFov() { const a = innerWidth / innerHeight; camera.fov = FP.active ? (a < 0.85 ? 80 : 72) : a < 0.85 ? 44 : a < 1.25 ? 38 : 32; camera.updateProjectionMatrix(); }
-function homeView() {
+// az: which side of the island to look from (defaults to the classic three-quarter view)
+function homeView(az = 0.42) {
   const a = innerWidth / innerHeight, t = new THREE.Vector3(0, 1.5, 3);
   const dist = Math.max(128, (a < 1 ? 112 : 150) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * a));
-  return { pos: sph(t, dist, 0.94, 0.42), target: t };
+  return { pos: sph(t, dist, 0.94, az), target: t };
 }
+// horizontal direction the camera currently looks from, around a point
+function viewAz(around) { return Math.atan2(camera.position.x - around.x, camera.position.z - around.z); }
+const smoother = (t) => t * t * t * (t * (t * 6 - 15) + 10);
+const _tm = new THREE.Matrix4(), _tq = new THREE.Quaternion(), _te = new THREE.Vector3();
+// Camera flights: the position travels on a sphere around a gliding target, while the view
+// turns along the shortest arc from where it looked to where it will look, never faster than ~70°/s.
 function flyTo(pos, target, dur = 2.2) {
   const o0 = camera.position.clone().sub(controls.target), o1 = pos.clone().sub(target);
   const s0 = new THREE.Spherical().setFromVector3(o0), s1 = new THREE.Spherical().setFromVector3(o1);
   let dth = s1.theta - s0.theta; dth = Math.atan2(Math.sin(dth), Math.cos(dth));
-  camTween = { s0, s1: new THREE.Spherical(s1.radius, s1.phi, s0.theta + dth), t0: controls.target.clone(), t1: target.clone(), t: 0, dur };
+  const q0 = camera.quaternion.clone(), q1 = _tq.setFromRotationMatrix(_tm.lookAt(pos, target, camera.up)).clone();
+  const turn = THREE.MathUtils.radToDeg(q0.angleTo(q1)), travel = camera.position.distanceTo(pos);
+  dur = clamp(Math.max(dur, turn / 38, travel / 70), dur, 6);   // smootherstep peaks at ~1.9x the average speed
+  camTween = { s0, s1: new THREE.Spherical(s1.radius, s1.phi, s0.theta + dth), t0: controls.target.clone(), t1: target.clone(), q0, t: 0, dur };
 }
 function updateTween(dt) {
   if (!camTween) return false;
   const tw = camTween; tw.t += dt / tw.dur;
-  const k = easeInOut(Math.min(1, tw.t));
+  const k = smoother(Math.min(1, tw.t));
   controls.target.lerpVectors(tw.t0, tw.t1, k);
   const s = new THREE.Spherical(lerp(tw.s0.radius, tw.s1.radius, k), lerp(tw.s0.phi, tw.s1.phi, k), lerp(tw.s0.theta, tw.s1.theta, k));
   camera.position.setFromSpherical(s).add(controls.target);
-  if (tw.t >= 1) camTween = null;
+  // final orientation (follows a moving subject), reached by a single eased slerp
+  _te.setFromSpherical(tw.s1).add(tw.t1);
+  _tq.setFromRotationMatrix(_tm.lookAt(_te, tw.t1, camera.up));
+  camera.quaternion.slerpQuaternions(tw.q0, _tq, k);
+  if (tw.t >= 1) { camTween = null; camera.lookAt(controls.target); }
   return true;
 }
 function followTarget(i) { const f = FOLLOWABLE[i]; return f.pos.clone().add(new THREE.Vector3(0, f.h, 0)); }
-function setCamMode(mode, { silent = false } = {}) {
+let camFadeBusy = false;
+function setCamMode(mode, opts = {}) {
+  // entering or leaving first person is a cut: dip briefly to black instead of jumping
+  if (!opts.silent && !opts.faded && (mode === 'fp') !== FP.active && started) {
+    if (camFadeBusy) return;
+    camFadeBusy = true;
+    const fade = $('#camFade'); fade.classList.add('on');
+    setTimeout(() => { setCamMode(mode, { ...opts, faded: true }); requestAnimationFrame(() => { fade.classList.remove('on'); camFadeBusy = false; }); }, 260);
+    return;
+  }
+  const { silent = false } = opts;
   if (mode !== 'fp' && FP.active) exitFP();
   camMode = mode;
   document.querySelectorAll('#camSeg button').forEach((b) => b.classList.toggle('active', b.dataset.cam === mode));
@@ -4784,16 +5152,17 @@ function setCamMode(mode, { silent = false } = {}) {
   controls.autoRotate = false; idleT = 0;
   if (mode === 'orbit') {
     controls.minDistance = 12;
-    if (!silent) { const h = homeView(); const cur = camera.position.distanceTo(controls.target); if (cur < 45) flyTo(h.pos, h.target, 2.2); }
+    if (!silent) { const h = homeView(viewAz(new THREE.Vector3(0, 1.5, 3))); const cur = camera.position.distanceTo(controls.target); if (cur < 45) flyTo(h.pos, h.target, 2.2); }
   } else if (mode === 'follow') {
     controls.minDistance = 4;
     showFollow();
   } else if (mode === 'fp') {
     if (!FP.active) enterFP();
   } else if (mode === 'tour') {
-    tourU = 0;
-    const p = tourCurves.pos.getPointAt(0), t = tourCurves.target.getPointAt(0);
-    flyTo(p, t, 2.6);
+    // join the tour where it passes closest to the current view
+    let best = 1e9;
+    for (let i = 0; i < 120; i++) { const u = i / 120, p = tourCurves.pos.getPointAt(u), q = tourCurves.target.getPointAt(u); const d = p.distanceTo(camera.position) + q.distanceTo(controls.target) * 0.5; if (d < best) { best = d; tourU = u; } }
+    flyTo(tourCurves.pos.getPointAt(tourU), tourCurves.target.getPointAt(tourU), 2.6);
   }
 }
 function showFollow() {
@@ -4802,7 +5171,8 @@ function showFollow() {
   followPos.copy(tgt);
   const dist = { boat: 26, whale: 46, pod: 30, animal: 14 }[f.kind] || 19;
   const pol = { boat: 0.92, whale: 0.95, pod: 0.95, animal: 0.62 }[f.kind] || 0.72;
-  flyTo(sph(tgt, dist, pol, (f.yaw ?? 0) + Math.PI + 0.5), tgt, 2.0);
+  // keep looking from roughly the same side instead of swinging round behind the subject
+  flyTo(sph(tgt, dist, pol, viewAz(tgt)), tgt, 2.0);
   $('#followName').textContent = `${f.name} · ${f.note}`;
 }
 function nextFollow() { followIdx = (followIdx + 1) % FOLLOWABLE.length; if (camMode !== 'follow') setCamMode('follow'); else showFollow(); }
@@ -5068,7 +5438,7 @@ async function init() {
       camera.lookAt(home.target);
       buildTour(A);
       scene.fog = new THREE.FogExp2(0x9fc4d8, 0);   // only used in first-person mode
-      buildSnow();
+      buildSnow(); buildArms();
       buildPost();
       setupUI();
       setupFPInput();
@@ -5098,7 +5468,7 @@ init().catch((err) => {
 });
 
 // handy for tinkering from the browser console
-window.__island = { MARINE, CLOUDS, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph, FP, COLL, groundAt, fpInteract, nearestInteraction, enterFP, exitFP, BOATS, PEOPLE, takeBoat, boardRide, useSpot, coastPoint, hAt, waterAt, updateFP, updateBoats, U };
+window.__island = { MARINE, CLOUDS, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph, FP, COLL, groundAt, fpInteract, nearestInteraction, enterFP, exitFP, BOATS, PEOPLE, takeBoat, boardRide, useSpot, coastPoint, hAt, waterAt, updateFP, updateBoats, U, updateCamera, nextFollow, get camMode() { return camMode; }, greet, leaveRide, standUp, ARMS };
 
 </script>
 </body>
