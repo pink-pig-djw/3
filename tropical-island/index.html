@@ -2258,8 +2258,17 @@ function buildStructures() {
   A.umb = SITE.umb.map((s, k) => umbrella(s, [['#ff6b5e', '#fff3e4'], ['#2fa59a', '#fff3e4'], ['#ffc94a', '#fff3e4'], ['#5b8fd9', '#fff3e4']][k], k === 1));
   smallHut(SITE.hutA.x, SITE.hutA.z, 2.4, '#2f8f87');
   smallHut(SITE.hutB.x, SITE.hutB.z, 1.3, '#e0715a');
-  for (const [site, accent] of [[SITE.hutC, '#3f7cb0'], [SITE.hutD, '#c9883a']]) {
-    if (!blocked(site.x, site.z, 1.5)) { smallHut(site.x, site.z, Math.atan2(site.nx, site.nz), accent); torch(site.x + site.nx * 3.2 + site.nz * 1.6, site.z + site.nz * 3.2 - site.nx * 1.6); }
+  // two more cottages on the north side: try spots until two clear rocks, paths and trees
+  A.huts = 2;
+  const accents = ['#3f7cb0', '#c9883a'], placedHuts = [];
+  for (const deg of [-62, -128, -95, -35, -155, -80, -110]) {
+    if (placedHuts.length >= 2) break;
+    let site = null;
+    for (const dd of [0, 6, -6, 12, -12]) { for (const inset of [7.5, 9.5, 6, 11.5, 13.5]) { const c = coastPoint(deg + dd, inset); if (!blocked(c.x, c.z, 1.6) && groundHeight(c.x, c.z) > 1 && placedHuts.every((p) => Math.hypot(p.x - c.x, p.z - c.z) > 9)) { site = c; break; } } if (site) break; }
+    if (!site) continue;
+    smallHut(site.x, site.z, Math.atan2(site.nx, site.nz), accents[placedHuts.length]);
+    torch(site.x + site.nx * 3.2 + site.nz * 1.6, site.z + site.nz * 3.2 - site.nx * 1.6);
+    placedHuts.push(site); A.huts++;
   }
   lighthouse();
   sandcastle();
@@ -4159,7 +4168,7 @@ init().catch((err) => {
 });
 
 // handy for tinkering from the browser console
-window.__island = { MARINE, CLOUDS, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph };
+window.__island = { MARINE, CLOUDS, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph };
 
 </script>
 </body>
