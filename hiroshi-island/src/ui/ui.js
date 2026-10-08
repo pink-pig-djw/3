@@ -1,4 +1,4 @@
-import { CHAPTER, CONTROLS, ENDING, ENDING_AFTER, INTRO, SUBJECTS, SUBTITLE, TITLE } from '../game/story.js';
+import { CHAPTER, CONTROLS, ENDING, ENDING_AFTER, INTRO, SUBJECTS, SUBTITLE, TITLE, TOUCH_CONTROLS } from '../game/story.js';
 import { TIMES, TIME_LABELS } from '../world/timeofday.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -10,6 +10,13 @@ function el(html) {
 }
 
 const STAR = '★';
+
+const controlList = () =>
+  `<div class="controls only-mouse">${CONTROLS.map(([k, v]) => `<span><kbd>${k}</kbd>${v}</span>`).join('')}</div>` +
+  `<div class="controls only-touch">${TOUCH_CONTROLS.map(([k, v]) => `<span><kbd>${k}</kbd>${v}</span>`).join('')}</div>`;
+
+const ICON_CAMERA = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.2h3.4l1.7-2.4h6.8l1.7 2.4h3.4v10.6H3.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13.3" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
+const ICON_PAUSE = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`;
 
 /** All of the HTML overlay. Pure DOM, no framework. */
 export class UI {
@@ -49,14 +56,14 @@ export class UI {
           </div>
           <div class="settings">
             <label>画质
-              <select data-set="quality">
+              <select id="set-quality" data-set="quality">
                 <option value="low">低</option><option value="medium">中</option><option value="high">高</option>
               </select>
             </label>
-            <label>鼠标灵敏度 <input type="range" min="0.4" max="2" step="0.05" data-set="sens"></label>
-            <label>音量 <input type="range" min="0" max="1" step="0.05" data-set="volume"></label>
+            <label>视角灵敏度 <input id="set-sens" type="range" min="0.4" max="2" step="0.05" data-set="sens"></label>
+            <label>音量 <input id="set-volume" type="range" min="0" max="1" step="0.05" data-set="volume"></label>
           </div>
-          <div class="controls">${CONTROLS.map(([k, v]) => `<span><kbd>${k}</kbd>${v}</span>`).join('')}</div>
+          ${controlList()}
           <div class="credit">Blender 程序化建模 · Three.js 实时渲染</div>
         </div>
       </div>`),
@@ -68,10 +75,24 @@ export class UI {
         <div class="hud-right">
           <div class="pills">${TIMES.map((t) => `<button class="pill" data-time="${t}"><i class="dot ${t}"></i>${TIME_LABELS[t]}</button>`).join('')}</div>
           <button class="album-btn" data-act="album">相册 <b id="album-count">0</b>/${SUBJECTS.length}</button>
+          <button class="icon-btn only-touch" data-act="pause" aria-label="暂停">${ICON_PAUSE}</button>
         </div>
-        <div class="hint" id="hint"></div>
+        <div class="touch only-touch" id="touch">
+          <div class="t-stick" id="t-stick"><i></i></div>
+          <div class="t-cam">
+            <div class="t-lens">
+              <div class="t-group"><button class="t-btn" data-touch="zoomOut" aria-label="广角">－</button><span>焦距</span><button class="t-btn" data-touch="zoomIn" aria-label="长焦">＋</button></div>
+              <div class="t-group"><button class="t-btn" data-touch="fDown" aria-label="开大光圈">f−</button><span>光圈</span><button class="t-btn" data-touch="fUp" aria-label="收小光圈">f+</button></div>
+            </div>
+            <div class="t-row">
+              <button class="t-shutter" data-touch="shutter" aria-label="快门"></button>
+              <button class="t-raise" data-touch="raise" aria-label="举起或放下相机">${ICON_CAMERA}</button>
+            </div>
+          </div>
+        </div>
+        <div class="hint" id="hint" data-touch="act"></div>
         <div class="toast" id="toast"></div>
-        <div class="keys" id="keys">右键 举起相机 · 左键 快门 · Tab 相册 · E 互动</div>
+        <div class="keys only-mouse" id="keys">右键 举起相机 · 左键 快门 · Tab 相册 · E 互动 · Esc 暂停</div>
       </div>`),
     );
     r.append(
@@ -79,9 +100,9 @@ export class UI {
         <div class="vf-frame"><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i>
           <div class="thirds"><i></i><i></i><i></i><i></i></div>
           <div class="af" id="af"></div>
-        </div>
-        <div class="vf-info">
-          <span id="vf-focal">35mm</span><span id="vf-f">f/2.8</span><span id="vf-focus">∞</span><span id="vf-dof"></span><span id="vf-mode">AF</span>
+          <div class="vf-info">
+            <span id="vf-focal">35mm</span><span id="vf-f">f/2.8</span><span id="vf-focus">∞</span><span id="vf-dof"></span><span id="vf-mode">AF</span>
+          </div>
         </div>
       </div>`),
     );
@@ -99,7 +120,7 @@ export class UI {
           <div class="page left"><h2>浩的相册</h2><div class="index" id="album-index"></div><div class="extras-title">其他照片</div><div class="extras" id="album-extras"></div></div>
           <div class="page right" id="album-detail"></div>
         </div>
-        <div class="album-close">Tab / Esc 合上相册</div>
+        <button class="album-close" data-act="closeAlbum">合上相册<span class="only-mouse"> · Tab / Esc</span></button>
       </div>`),
     );
     r.append(
@@ -107,7 +128,7 @@ export class UI {
         <div class="pause-inner"><h2>暂停</h2>
           <button class="btn primary" data-act="resume">回到岛上</button>
           <button class="btn" data-act="album">打开相册</button>
-          <div class="controls">${CONTROLS.map(([k, v]) => `<span><kbd>${k}</kbd>${v}</span>`).join('')}</div>
+          ${controlList()}
         </div>
       </div>`),
     );
@@ -122,6 +143,13 @@ export class UI {
       if (time) this.emit('pickTime', time);
       const entry = e.target.closest('[data-entry]')?.dataset.entry;
       if (entry) this.showEntry(entry);
+    });
+    // on-screen camera buttons answer on touch-down, not on the later click
+    r.addEventListener('pointerdown', (e) => {
+      const k = e.target.closest('[data-touch]')?.dataset.touch;
+      if (!k || (k === 'act' && !this.root.classList.contains('is-touch'))) return;
+      e.preventDefault();
+      this.emit('touch', k);
     });
     r.addEventListener('input', (e) => {
       const k = e.target.dataset.set;
@@ -191,6 +219,35 @@ export class UI {
     this.show('hud', on);
   }
 
+  /** Touch screen or mouse: swaps the control hints and shows the stick and buttons. */
+  setTouch(on) {
+    this.root.classList.toggle('is-touch', on);
+  }
+
+  /** The floating stick under the left thumb (null: back to its resting place). */
+  stick(s) {
+    const st = (this.$stick ??= $('#t-stick', this.root));
+    const knob = st.firstElementChild;
+    st.classList.toggle('on', !!s);
+    st.classList.toggle('run', !!s?.run);
+    st.style.left = s ? `${s.ox}px` : '';
+    st.style.top = s ? `${s.oy}px` : '';
+    knob.style.transform = s ? `translate(${s.kx}px, ${s.ky}px)` : '';
+  }
+
+  touchState(raised) {
+    if (this._raised === raised) return;
+    this._raised = raised;
+    $('#touch', this.root).classList.toggle('raised', raised);
+  }
+
+  /** Something the page can't recover from, said plainly on the loading screen. */
+  fatal(text) {
+    this.show('loading', true);
+    $('#loading .bar', this.root).hidden = true;
+    $('.loading-note', this.root).textContent = text;
+  }
+
   setTime(name, unlocked) {
     this.root.querySelectorAll('.pill').forEach((b) => {
       const t = b.dataset.time;
@@ -222,7 +279,12 @@ export class UI {
   }
 
   viewfinder(on, info) {
-    this.show('vf', on);
+    if (this._vf !== on) {
+      this._vf = on;
+      this.show('vf', on);
+      // looking through the camera: the rest of the HUD steps aside
+      this.root.classList.toggle('vf-on', on);
+    }
     if (!on || !info) return;
     $('#vf-focal', this.root).textContent = `${info.focal}mm`;
     $('#vf-f', this.root).textContent = `f/${info.fstop}`;

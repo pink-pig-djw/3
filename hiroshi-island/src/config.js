@@ -1,8 +1,11 @@
+// phones and tablets: lighter defaults, but no blurry sub-pixel rendering on their small screens
+const TOUCH = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+
 /** Quality presets. `?quality=low|medium|high` overrides the saved choice. */
 export const QUALITY = {
   low: {
     name: 'low',
-    pixelRatio: 0.75,
+    pixelRatio: TOUCH ? 1 : 0.75,
     shadowMap: 2048,
     shadowExtent: 40,
     envSize: 64,
@@ -59,5 +62,5 @@ export function pickQuality() {
   } catch {
     /* storage may be unavailable */
   }
-  return QUALITY.medium;
+  return TOUCH ? QUALITY.low : QUALITY.medium;
 }

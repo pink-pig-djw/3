@@ -13,7 +13,7 @@ export const INTRO = [
 export const CONTROLS = [
   ['WASD', '行走'],
   ['Shift', '快走'],
-  ['鼠标', '环顾'],
+  ['鼠标 / 拖动', '环顾'],
   ['右键 / F', '举起相机'],
   ['左键', '快门'],
   ['滚轮', '变焦'],
@@ -23,6 +23,17 @@ export const CONTROLS = [
   ['Tab', '相册'],
   ['E', '互动'],
   ['Esc', '暂停'],
+];
+
+/** The same for touch screens (see game/input.js). */
+export const TOUCH_CONTROLS = [
+  ['左侧拖动', '行走，推到底快走'],
+  ['右侧拖动', '环顾'],
+  ['相机键', '举起 / 放下相机'],
+  ['快门', '拍照'],
+  ['＋ －', '变焦'],
+  ['f− f+', '光圈'],
+  ['相册', '要拍的东西'],
 ];
 
 export const SUBJECTS = [
@@ -120,6 +131,7 @@ export const FEEDBACK = {
 
 export const HINTS = {
   rest: '按 E 在长椅上坐下，等时间过去',
+  restTouch: '点这里，在长椅上坐下，等时间过去',
   restDone: '按 E 起身',
   bench: '长椅',
   boundary: '再往前就是密林了。',

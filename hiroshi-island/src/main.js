@@ -14,26 +14,38 @@ installFogChunks();
 
 const params = new URLSearchParams(location.search);
 const SHOT = params.has('shot'); // headless screenshot mode (see README)
+// a quality switch that couldn't be saved survives the reload in the hash
+const HASH_QUALITY = /^#q-(low|medium|high)$/.exec(location.hash)?.[1];
 
 function loadSettings() {
   const d = { quality: pickQuality().name, sens: 1, volume: 0.8 };
+  let saved = {};
   try {
-    return { ...d, ...JSON.parse(localStorage.getItem('hiroshi.settings') || '{}'), ...(params.get('quality') ? { quality: params.get('quality') } : {}) };
+    saved = JSON.parse(localStorage.getItem('hiroshi.settings') || '{}');
   } catch {
-    return d;
+    /* storage may be unavailable */
   }
+  const forced = params.get('quality') || HASH_QUALITY;
+  return { ...d, ...saved, ...(forced ? { quality: forced } : {}) };
 }
 const settings = loadSettings();
 const quality = QUALITY[settings.quality] ?? QUALITY.medium;
 
 const canvas = document.getElementById('view');
-const renderer = new WebGLRenderer({
-  canvas,
-  antialias: false,
-  powerPreference: 'high-performance',
-  stencil: false,
-  preserveDrawingBuffer: SHOT,
-});
+const ui = new UI(document.getElementById('ui'));
+let renderer;
+try {
+  renderer = new WebGLRenderer({
+    canvas,
+    antialias: false,
+    powerPreference: 'high-performance',
+    stencil: false,
+    preserveDrawingBuffer: SHOT,
+  });
+} catch (e) {
+  ui.fatal('这个浏览器打不开 WebGL 2，岛画不出来。请换用最新版的 Chrome、Edge、Safari 或 Firefox，并打开硬件加速。');
+  throw e;
+}
 renderer.outputColorSpace = SRGBColorSpace;
 renderer.toneMapping = NoToneMapping;
 renderer.shadowMap.enabled = true;
@@ -45,7 +57,6 @@ const scene = new Scene();
 const camera = new PerspectiveCamera(62, 1, 0.1, 4000);
 camera.rotation.order = 'YXZ';
 
-const ui = new UI(document.getElementById('ui'));
 const assets = new Assets(renderer, (done, total) => ui.progress(done, total));
 const world = new World(renderer, scene, quality);
 const audio = new SoundScape();
@@ -67,17 +78,21 @@ function resize() {
 function saveSettings() {
   try {
     localStorage.setItem('hiroshi.settings', JSON.stringify(settings));
+    return JSON.parse(localStorage.getItem('hiroshi.settings')).quality === settings.quality;
   } catch {
-    /* ignore */
+    return false;
   }
 }
 
 ui.on('setting', (k, v) => {
   if (k === 'quality') {
     settings.quality = v;
-    saveSettings();
-    ui.toast('画质会在重新载入后生效。', 2500);
-    setTimeout(() => location.reload(), 600);
+    const saved = saveSettings();
+    ui.toast('正在用新的画质重新载入……', 2500);
+    setTimeout(() => {
+      if (!saved || HASH_QUALITY) location.hash = `q-${v}`;
+      location.reload();
+    }, 600);
   } else if (k === 'sens') {
     settings.sens = Number(v);
     if (game) game.player.sensitivity = 0.0022 * settings.sens;
@@ -89,11 +104,14 @@ ui.on('setting', (k, v) => {
   }
 });
 
-canvas.addEventListener('click', () => {
-  if (game && game.state === 'play' && !input.locked) input.lock();
-});
+/** What a live update of the page should carry over (see the end of this file). */
+function snapshot() {
+  if (!game || ['title', 'intro'].includes(game.state)) return null;
+  const p = game.player;
+  return { pose: [p.pos.x, p.pos.y, p.pos.z, p.yaw, p.pitch], time: world.time.current };
+}
 
-async function boot() {
+async function boot(resume) {
   await world.load(assets);
   const creatures = await assets.gltf('models/creatures.glb');
   life = createLife(creatures, world);
@@ -139,6 +157,8 @@ async function boot() {
       ui.hud(true);
       ui.setTime(time, ['afternoon', 'golden', 'blue', 'night']);
     }
+  } else if (resume?.pose) {
+    game.restore(resume);
   } else {
     ui.loaded();
   }
@@ -181,9 +201,17 @@ async function boot() {
   requestAnimationFrame(loop);
 }
 
-boot().catch((e) => {
-  console.error(e);
-  window.__error = String(e && e.stack ? e.stack : e);
-  const n = document.querySelector('.loading-note');
-  if (n) n.textContent = `载入失败：${e.message || e}`;
-});
+function start(data) {
+  boot(data).catch((e) => {
+    console.error(e);
+    window.__error = String(e && e.stack ? e.stack : e);
+    ui.fatal(`载入失败：${e.message || e}。刷新页面再试一次。`);
+  });
+}
+
+// When the page is republished while someone is playing, the host hands the
+// snapshot to the new version so the walk continues where it was.
+const hot = window.claude?.hot;
+hot?.snapshot?.(snapshot);
+if (hot?.ready) hot.ready(start);
+else start(hot?.data ?? {});

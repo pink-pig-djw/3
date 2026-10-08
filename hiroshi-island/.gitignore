@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-web/
 blender/build/
 *.blend1
 .DS_Store

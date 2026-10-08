@@ -26,6 +26,8 @@ export class Player {
     this.inWater = 0;
     this.blockedMsg = null;
     this.frozen = false;
+    // no head bob for people who asked their system for less motion
+    this.bobScale = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
     const b = world.layout.playable;
     this.bounds = b;
   }
@@ -128,9 +130,12 @@ export class Player {
       return;
     }
     // move
-    const f = (input.down('KeyW') || input.down('ArrowUp') ? 1 : 0) - (input.down('KeyS') || input.down('ArrowDown') ? 1 : 0);
-    const s = (input.down('KeyD') || input.down('ArrowRight') ? 1 : 0) - (input.down('KeyA') || input.down('ArrowLeft') ? 1 : 0);
-    const run = input.down('ShiftLeft') || input.down('ShiftRight');
+    const keyF = (input.down('KeyW') || input.down('ArrowUp') ? 1 : 0) - (input.down('KeyS') || input.down('ArrowDown') ? 1 : 0);
+    const keyS = (input.down('KeyD') || input.down('ArrowRight') ? 1 : 0) - (input.down('KeyA') || input.down('ArrowLeft') ? 1 : 0);
+    // keys and the touch stick add up; a half-pushed stick walks slower
+    const f = MathUtils.clamp(keyF + input.move.y, -1, 1);
+    const s = MathUtils.clamp(keyS + input.move.x, -1, 1);
+    const run = input.down('ShiftLeft') || input.down('ShiftRight') || input.move.run;
     const depth = Math.max(this.hf.waterLevel(this.pos.x, this.pos.z) - this.pos.y, 0);
     this.inWater = depth;
     let speed = (run ? 3.3 : 1.55) * slow * (depth > 0.05 ? 0.55 : 1);
@@ -191,8 +196,9 @@ export class Player {
 
   /** Apply the pose to a camera. */
   apply(camera, { steady = false } = {}) {
-    const bobY = steady ? 0 : Math.sin(this.bob * 2) * 0.022 * this.bobAmp;
-    const bobX = steady ? 0 : Math.cos(this.bob) * 0.012 * this.bobAmp;
+    const amp = steady ? 0 : this.bobAmp * this.bobScale;
+    const bobY = Math.sin(this.bob * 2) * 0.022 * amp;
+    const bobX = Math.cos(this.bob) * 0.012 * amp;
     camera.position.set(this.pos.x, this.pos.y + EYE + bobY, this.pos.z);
     camera.rotation.order = 'YXZ';
     camera.rotation.set(this.pitch, this.yaw, bobX * 0.4);

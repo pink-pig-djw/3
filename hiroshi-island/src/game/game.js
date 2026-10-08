@@ -44,6 +44,12 @@ export class Game {
     input.on('unlock', () => {
       if (this.state === 'play') this.pause();
     });
+    input.on('mode', (touch) => ui.setTouch(touch));
+    input.onStick = (st) => ui.stick(st);
+    ui.setTouch(input.touch);
+    ui.on('pause', () => this.state === 'play' && this.pause());
+    ui.on('closeAlbum', () => this.state === 'album' && (ui.closeAlbum(), this.resume()));
+    ui.on('touch', (k) => this.touchButton(k));
     ui.on('start', () => this.newGame());
     ui.on('continue', () => this.continueGame());
     ui.on('resume', () => this.resume());
@@ -125,16 +131,30 @@ export class Game {
     this.ui.setCount(this.photoCount());
     this.input.lock();
     setTimeout(() => this.ui.fadeKeys(), 22000);
-    this.ui.toast('右键举起相机。相册里写着要拍的东西。', 6000);
+    this.ui.toast(this.input.touch ? '点右下角的相机键举起相机。相册里写着要拍的东西。' : '右键举起相机。相册里写着要拍的东西。', 6000);
+  }
+
+  /** Back to where a live update of the page interrupted the walk, paused. */
+  restore(snap) {
+    const [x, y, z, yaw, pitch] = snap.pose;
+    this.ui.show('title', false);
+    this.world.time.set(snap.time ?? this.save.time, 0);
+    this.player.place({ position: new Vector3(x, y, z), yaw, pitch });
+    this.ui.hud(true);
+    this.ui.setTime(this.world.time.current, this.save.unlocked);
+    this.ui.setCount(this.photoCount());
+    this.pause();
   }
 
   pause() {
+    this.input.unlock();
     this.state = 'paused';
     this.ui.show('pause', true);
     this.ui.viewfinder(false);
   }
 
   resume() {
+    this.audio.start();
     this.ui.show('pause', false);
     this.ui.closeAlbum();
     this.state = 'play';
@@ -294,6 +314,12 @@ export class Game {
       return;
     }
 
+    if (input.hit('Escape')) {
+      // with pointer lock the browser usually swallows Esc and 'unlock' pauses instead
+      this.pause();
+      input.endFrame();
+      return;
+    }
     if (input.hit('Tab')) {
       this.openAlbum();
       input.endFrame();
@@ -324,10 +350,11 @@ export class Game {
     player.apply(this.camera, { steady: raised });
     dslr.update(dt);
     ui.viewfinder(dslr.raiseT > 0.5, dslr.info());
+    ui.touchState(raised);
 
     // interactions + hints
     if (!raised && this.nearBench()) {
-      ui.hint(HINTS.rest);
+      ui.hint(input.touch ? HINTS.restTouch : HINTS.rest);
       if (input.hit('KeyE')) this.startRest();
     } else ui.hint('');
     if (player.blockedMsg && performance.now() - this.lastToast > 4000) {
@@ -340,6 +367,18 @@ export class Game {
       this.persist();
     }
     input.endFrame();
+  }
+
+  /** On-screen buttons (touch screens) stand in for keys and clicks. */
+  touchButton(k) {
+    if (this.state !== 'play') return;
+    const input = this.input;
+    if (k === 'raise') input.tap('KeyF');
+    else if (k === 'shutter') input.clicked.add(0);
+    else if (k === 'zoomIn') input.wheel -= 1;
+    else if (k === 'zoomOut') input.wheel += 1;
+    else if (k === 'fDown') input.tap('KeyQ');
+    else if (k === 'fUp' || k === 'act') input.tap('KeyE');
   }
 
   /** Called after the frame has been rendered. */

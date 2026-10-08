@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "optimize": "node tools/optimize-models.mjs"
+    "optimize": "node tools/optimize-models.mjs",
+    "build:web": "node tools/build-web.mjs"
   },
   "dependencies": {
     "n8ao": "2.0.1",
