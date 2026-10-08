@@ -321,7 +321,9 @@ def height_field(X, Z, detail=True):
     top = C["top"]
     # everything north of the wall face is filled up to the road level and then
     # rises gently into the northern hills
-    north = Z < C["z"] - 0.05
+    # the tunnel corridor keeps the stream channel (covered by a stone deck in architecture.py)
+    tunnel = (np.abs(X - C["x"]) < C["arch_radius"] + 0.35) & (Z > C["z"] - C["tunnel_depth"] + 0.3)
+    north = (Z < C["z"] - 0.05) & ~tunnel
     hill_n = top + np.maximum(0, (W.ROAD["z0"] - 1.0) - Z) * 0.22 + fbm(X / 30, Z / 30, 3, seed=21) * 0.8 * \
         smoothstep(W.ROAD["z0"] - 1.0, W.ROAD["z0"] - 12.0, Z)
     y = np.where(north, np.maximum(y, hill_n), y)
@@ -331,7 +333,8 @@ def height_field(X, Z, detail=True):
     y = np.where(north, y * (1 - road) + (top - 0.05) * road, y)
     # wing slopes south of the wall: rise to the wall top away from the channel
     dxw = np.abs(X - C["x"])
-    wing = smoothstep(half + 0.9, half + 3.5, dxw)
+    # embankment slopes only beyond the ends of the wall, so the masonry face stays visible
+    wing = smoothstep(C["half_width"] - 0.6, C["half_width"] + 1.2, dxw)
     south_of_wall = Z >= C["z"] - 0.05
     wing_y = top - np.maximum(Z - C["z"], 0) * 0.85 - smoothstep(C["half_width"] - 1.0, C["half_width"] + 9.0, dxw) * 0.0
     y = np.where(south_of_wall & (Z < C["z"] + 9.0), np.maximum(y, wing_y * wing + y * (1 - wing)), y)

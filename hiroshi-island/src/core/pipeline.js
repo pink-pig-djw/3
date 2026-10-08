@@ -324,10 +324,14 @@ class LookEffect extends Effect {
       uniform float uVignette;
       uniform float uGrain;
       uniform float uTime;
+      uniform float uNight;
       float hashL(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
       void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
         vec3 c = inputColor.rgb;
         float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        // night vision: dim areas lose colour and shift to blue, lights stay warm
+        float pk = uNight * (1.0 - smoothstep(0.25, 0.85, l));
+        c = mix(c, l * vec3(0.62, 0.8, 1.15), pk * 0.6);
         c = mix(vec3(l), c, uSat);
         c = (c - 0.5) * uContrast + 0.5;
         c *= vec3(1.0 + uWarmth, 1.0 + uWarmth * 0.2, 1.0 - uWarmth);
@@ -348,6 +352,7 @@ class LookEffect extends Effect {
           ['uVignette', new Uniform(0.28)],
           ['uGrain', new Uniform(0.018)],
           ['uTime', new Uniform(0)],
+          ['uNight', new Uniform(0)],
         ]),
       },
     );
@@ -407,8 +412,9 @@ export class Pipeline {
     this.composer.setSize(w, h, false);
   }
 
-  setLook({ contrast, sat, warmth, vignette, grain }) {
+  setLook({ contrast, sat, warmth, vignette, grain, night }) {
     const u = this.look.uniforms;
+    if (night !== undefined) u.get('uNight').value = night;
     if (contrast !== undefined) u.get('uContrast').value = contrast;
     if (sat !== undefined) u.get('uSat').value = sat;
     if (warmth !== undefined) u.get('uWarmth').value = warmth;

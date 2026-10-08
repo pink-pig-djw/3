@@ -15,7 +15,7 @@ import { GLSL_COMMON, GLSL_UNIFORMS, addShared } from './shaderlib.js';
  * glossier when wet (below / near the water line), optional fine detail
  * normal from the tileable rock texture.
  */
-export function patchWeathering(mat, { hf, moss, mossAmount = 0.6, wetLine = true, cacheKey = 'weather' }) {
+export function patchWeathering(mat, { hf, moss, mossAmount = 0.6, wetLine = true, streaks = false, cacheKey = 'weather' }) {
   const prev = mat.onBeforeCompile;
   mat.onBeforeCompile = (shader, r) => {
     prev?.(shader, r);
@@ -71,6 +71,13 @@ export function patchWeathering(mat, { hf, moss, mossAmount = 0.6, wetLine = tru
         roughnessFactor = mix(roughnessFactor, 0.18, wetK);
         // faint darker band of dried water marks just above the line
         diffuseColor.rgb *= 1.0 - 0.18 * smoothstep(0.35, 0.05, above) * (1.0 - wetK);
+        ${streaks ? `
+        // rain streaks and lichen on vertical masonry
+        float vert = 1.0 - abs(normalize(vPN).y);
+        float st = vnoise(vec2(dot(vPW.xz, vec2(2.7, 2.7)), vPW.y * 0.35));
+        diffuseColor.rgb *= 1.0 - 0.35 * vert * smoothstep(0.55, 0.9, st);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.32, 0.36, 0.22), vert * smoothstep(0.72, 0.95, vnoise(vPW.xy * 1.3 + vPW.zy)) * 0.35);
+        ` : ''}
         `,
       );
   };

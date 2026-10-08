@@ -84,6 +84,7 @@ uniform vec3 uAbsorb;
 uniform vec3 uScatter;
 uniform float uSSR;
 uniform mat4 uProj;
+uniform vec2 uCulvert; // x, z of the culvert face
 varying vec3 vWW;
 varying vec4 vFlow;
 varying vec2 vRUv;
@@ -156,7 +157,7 @@ const WATER_NORMAL = /* glsl */ `
   vec2 fuv = vec2(dot(vWW.xz, facr), dot(vWW.xz, fdir));
   vec3 r1 = sampleRipples(fuv, speed, 1.25, 0.0);
   vec3 r2 = sampleRipples(fuv * vec2(1.0, 0.8) + 3.7, speed * 1.15, 0.42, 0.33);
-  float turb = 0.55 + speed * 0.35 + cascade * 1.6 + uWind.z * 0.4;
+  float turb = 0.22 + speed * 0.45 + cascade * 1.6 + uWind.z * 0.3;
   vec2 nxy = (r1.xy * 0.55 + r2.xy * 0.45) * turb;
   // bigger slow swell on the pool
   nxy += vec2(vnoise(vWW.xz * 0.6 + uTime * 0.13) - 0.5, vnoise(vWW.xz * 0.6 - uTime * 0.11 + 7.0) - 0.5) * 0.12;
@@ -188,6 +189,9 @@ const WATER_COLOR = /* glsl */ `
   vec3 Rv = reflect(-Vv, normal);
   vec4 ssr = uSSR > 0.5 ? traceSSR(-vViewPosition, Rv) : vec4(0.0);
   vec3 indirectSpec = mix(reflectedLight.indirectSpecular, ssr.rgb * F, ssr.a);
+  // inside the culvert tunnel there is no sky to reflect
+  float inTunnel = (1.0 - smoothstep(2.0, 2.6, abs(vWW.x - uCulvert.x))) * smoothstep(uCulvert.y + 1.6, uCulvert.y - 1.5, vWW.z);
+  indirectSpec *= 1.0 - 0.94 * inTunnel;
 
   vec3 spec = reflectedLight.directSpecular + indirectSpec;
   vec3 foamLit = (reflectedLight.directDiffuse + reflectedLight.indirectDiffuse);
@@ -213,6 +217,7 @@ export function createWater(streamData, maps) {
     uAbsorb: { value: new Vector3(0.38, 0.1, 0.09) },
     uScatter: { value: new Color(0.035, 0.07, 0.055) },
     uSSR: { value: 1 },
+    uCulvert: { value: new Vector2(0, -24.5) },
   };
   mat.onBeforeCompile = (shader) => {
     addShared(shader, uniforms);

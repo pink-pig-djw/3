@@ -236,12 +236,12 @@ def build_culvert(B, T):
     y = ybot
     course = 0
     while y < top - 0.05:
-        ch = RNG.uniform(0.32, 0.44)
+        ch = RNG.uniform(0.28, 0.5)
         if y + ch > top:
             ch = top - y
         x = cx - hw + (RNG.uniform(0.0, 0.5) if course % 2 else 0.0)
         while x < cx + hw - 0.05:
-            bl = RNG.uniform(0.55, 1.15)
+            bl = RNG.uniform(0.45, 1.35)
             if x + bl > cx + hw:
                 bl = cx + hw - x
             pieces = [(x, bl)]
@@ -266,9 +266,11 @@ def build_culvert(B, T):
                 pieces = nxt
             for (px, pl) in out:
                 gap = 0.022
-                prot = RNG.uniform(0.0, 0.035)
-                B.box("stone", (px + gap / 2, y + ch / 2, zf + prot / 2), (1, 0, 0), (0, 1, 0), pl - gap, ch - gap,
-                      0.3 + prot, bevel=RNG.uniform(0.02, 0.045), tint=tint_rand(1.0, 0.16, 0.04), uv_tile=2.5)
+                prot = RNG.uniform(0.0, 0.06)
+                shrink = RNG.uniform(0.0, 0.03)
+                B.box("stone", (px + gap / 2, y + ch / 2 + RNG.normal(0, 0.006), zf + prot / 2), (1, 0, 0), (0, 1, 0),
+                      pl - gap - shrink, ch - gap - shrink, 0.3 + prot, bevel=RNG.uniform(0.03, 0.07),
+                      tint=tint_rand(0.95, 0.26, 0.06), uv_tile=2.5)
             x += bl
         y += ch
         course += 1
@@ -334,14 +336,25 @@ def build_culvert(B, T):
     for j in range(nz):
         for i in range(len(pts) - 1):
             a = j * len(pts) + i
-            q = [a, a + len(pts), a + len(pts) + 1, a + 1]
+            q = [a, a + 1, a + len(pts) + 1, a + len(pts)]  # normals face into the tunnel
             F.append(q)
-            UV.append([(i * 0.25, zs[j] / 2.5), (i * 0.25, zs[j + 1] / 2.5), ((i + 1) * 0.25, zs[j + 1] / 2.5),
-                       ((i + 1) * 0.25, zs[j] / 2.5)])
+            UV.append([(i * 0.25, zs[j] / 2.5), ((i + 1) * 0.25, zs[j] / 2.5), ((i + 1) * 0.25, zs[j + 1] / 2.5),
+                       (i * 0.25, zs[j + 1] / 2.5)])
     V = np.array(V)
     # darken with depth (fake occlusion inside the tunnel)
     dk = np.clip(1 - (za - V[:, 2]) / depth * 1.4, 0.05, 1.0) ** 1.5
     B.add("stone", V, F, UV, np.stack([dk, dk, dk], 1) * 0.85)
+    # paved deck over the tunnel where the road crosses (hides the trench in the terrain)
+    zz = zf - thick
+    while zz > zb:
+        dz = RNG.uniform(0.45, 0.7)
+        x = cx - 2.6
+        while x < cx + 2.6:
+            L = min(RNG.uniform(0.5, 1.0), cx + 2.6 - x)
+            B.box("stone", (x, W.ROAD["y"] - 0.12, zz - dz / 2), (1, 0, 0), (0, 1, 0), L - 0.02, 0.3, dz - 0.02,
+                  bevel=0.04, tint=tint_rand(0.8, 0.15), uv_tile=2.5)
+            x += L
+        zz -= dz
     # back wall in darkness
     B.poly("dark", [(cx - R - 0.2, ybot, zb), (cx + R + 0.2, ybot, zb), (cx + R + 0.2, yspring + R + 0.3, zb),
                     (cx - R - 0.2, yspring + R + 0.3, zb)], tint=0.02)

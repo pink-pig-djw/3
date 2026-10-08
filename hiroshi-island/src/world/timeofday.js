@@ -14,22 +14,22 @@ const PRESETS = {
   afternoon: {
     sunAz: 222, sunEl: 36, moonAz: 110, moonEl: -20,
     haze: 1.15, cloud: 0.34, stars: 0, fog: 0.0030, fogFall: 0.075,
-    exposure: 0.62, lanterns: 0, wind: 0.42, warmth: 0.0, sat: 1.04, contrast: 1.02,
+    exposure: 1.0, lanterns: 0, wind: 0.42, warmth: 0.0, sat: 1.04, contrast: 1.02,
   },
   golden: {
-    sunAz: 291, sunEl: 5.5, moonAz: 100, moonEl: -8,
-    haze: 2.1, cloud: 0.42, stars: 0, fog: 0.0055, fogFall: 0.07,
-    exposure: 0.95, lanterns: 0.08, wind: 0.3, warmth: 0.08, sat: 1.08, contrast: 1.04,
+    sunAz: 282, sunEl: 9.0, moonAz: 100, moonEl: -8,
+    haze: 1.5, cloud: 0.42, stars: 0, fog: 0.0026, fogFall: 0.075,
+    exposure: 0.8, lanterns: 0.08, wind: 0.3, warmth: 0.1, sat: 1.1, contrast: 1.05,
   },
   blue: {
     sunAz: 299, sunEl: -4.6, moonAz: 62, moonEl: 3,
-    haze: 1.5, cloud: 0.36, stars: 0.3, fog: 0.0065, fogFall: 0.08,
-    exposure: 6.5, lanterns: 1, wind: 0.2, warmth: -0.04, sat: 1.0, contrast: 1.03,
+    haze: 1.3, cloud: 0.36, stars: 0.3, fog: 0.0042, fogFall: 0.08,
+    exposure: 0.4, lanterns: 1, wind: 0.2, warmth: -0.11, sat: 0.95, contrast: 1.04,
   },
   night: {
     sunAz: 320, sunEl: -26, moonAz: 28, moonEl: 24,
     haze: 1.05, cloud: 0.22, stars: 1, fog: 0.005, fogFall: 0.085,
-    exposure: 13.0, lanterns: 1, wind: 0.18, warmth: -0.06, sat: 0.9, contrast: 1.05,
+    exposure: 0.24, lanterns: 1, wind: 0.18, warmth: -0.06, sat: 0.9, contrast: 1.05,
   },
 };
 
@@ -83,6 +83,7 @@ export class TimeOfDay {
     this.moonDir = new Vector3();
     this.lightDir = new Vector3();
     this.lightIsMoon = false;
+    this.night = 0;
     this.listeners = [];
   }
 
@@ -164,13 +165,24 @@ export class TimeOfDay {
     u.uSunDisk.value.set(ts[0], ts[1], ts[2]).multiplyScalar(SUN_DISK * sunVis);
     u.uMoonDisk.value.set(tm[0] * 0.95, tm[1], tm[2] * 1.06).multiplyScalar(MOON_DISK * MathUtils.smoothstep(st.moonEl, -2, 3));
 
-    // sky light estimate for clouds, ground and fog
+    // sky light estimate for clouds, ground and fog (single scattering) ...
+    this.ms = [0, 0, 0];
     const zen = this.radiance([0, 1, 0]);
     const hz = [0, 0, 0];
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
       const r = this.radiance([Math.sin(a), 0.06, -Math.cos(a)]);
       for (let k = 0; k < 3; k++) hz[k] += r[k] / 6;
+    }
+    // ... plus an approximate multiple scattering term, bluish
+    const avg = [0, 1, 2].map((k) => (zen[k] + hz[k] * 2) / 3);
+    const avgL = 0.2126 * avg[0] + 0.7152 * avg[1] + 0.0722 * avg[2];
+    const tint = [0.62, 0.86, 1.4];
+    this.ms = tint.map((t) => t * avgL * 0.42);
+    u.uMS.value.set(...this.ms);
+    for (let k = 0; k < 3; k++) {
+      zen[k] += this.ms[k];
+      hz[k] += this.ms[k] * 1.3;
     }
     const skyE = (zen[0] + zen[1] + zen[2]) / 3;
     u.uCloudAmb.value.set(zen[0] * 0.55 + hz[0] * 0.6, zen[1] * 0.55 + hz[1] * 0.6, zen[2] * 0.55 + hz[2] * 0.6);
@@ -196,14 +208,23 @@ export class TimeOfDay {
 
     // fog: in-scattered horizon colour
     const fogCol = new Color(hz[0], hz[1], hz[2]).multiplyScalar(0.92);
+    // after sunset the haze takes the blue of the sky, not the glow in the west
+    const dusk = MathUtils.smoothstep(-st.sunEl, -1, 5) * 0.75;
+    fogCol.lerp(new Color(this.ms[0], this.ms[1], this.ms[2]).multiplyScalar(1.7), dusk);
     this.scene.fog.color.copy(fogCol);
     this.scene.fog.near = st.fog;
     this.scene.fog.far = st.fogFall;
 
-    this.exposure = st.exposure;
+    // automatic exposure: expose a 20% albedo surface lit by sun + sky to mid grey,
+    // then apply the mood of the preset (dusk and night stay dark)
+    const sunH = this.light.intensity * Math.max(this.lightDir.y, 0);
+    const skyL = 0.2126 * (zen[0] + hz[0]) * 0.5 + 0.7152 * (zen[1] + hz[1]) * 0.5 + 0.0722 * (zen[2] + hz[2]) * 0.5;
+    const key = (0.2 / Math.PI) * (sunH + Math.PI * skyL);
+    this.exposure = (0.18 / Math.max(key, 1e-5)) * st.exposure;
     G.uSunDirW.value.copy(dir);
     G.uSunColor.value.set(this.light.color.r, this.light.color.g, this.light.color.b).multiplyScalar(this.light.intensity);
     G.uNight.value = MathUtils.smoothstep(-st.sunEl, 2, 10);
+    this.night = MathUtils.smoothstep(-st.sunEl, 3, 14);
     G.uLanterns.value = st.lanterns;
     G.uWind.value.z = st.wind;
     this.skyE = skyE;

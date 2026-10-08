@@ -58,7 +58,7 @@ PATH_WEST = [(-10.2, 24.0), (-12.0, 21.6), (-14.6, 26.0), (-14.8, 33.0), (-12.5,
 ROAD_PATH = [(-34.0, -28.2), (-12.0, -28.0), (0.0, -27.9), (8.0, -27.8), (9.9, -27.2)]
 
 # Where the player starts and what they look at
-START = dict(x=-9.2, z=16.4, yaw_deg=8.0, pitch_deg=-2.0)
+START = dict(x=-5.6, z=19.8, yaw_deg=12.0, pitch_deg=-4.0)
 
 # Hero trees: (x, z, variant, scale, yaw)
 HERO_TREES = [

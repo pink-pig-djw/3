@@ -55,7 +55,7 @@ function patchWind(mat, { scale = 1, leaves = false, cacheKey }) {
       .replace('#include <begin_vertex>', `#include <begin_vertex>\n${WIND_VERTEX}`);
     if (leaves && shader.fragmentShader.includes('#include <lights_fragment_end>')) {
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nuniform float uTranslucency;')
+        .replace('#include <common>', `#include <common>\n${GLSL_UNIFORMS}\nuniform float uTranslucency;`)
         .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>\n${TRANSLUCENCY_GLSL}`);
     }
   };

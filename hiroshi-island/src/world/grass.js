@@ -23,7 +23,7 @@ export const TRANSLUCENCY_GLSL = /* glsl */ `
   vec3 Lt = dl0.direction;
   float back = pow(clamp(dot(geometryViewDir, -Lt), 0.0, 1.0), 4.0);
   float through = clamp(dot(-geometryNormal, Lt), 0.0, 1.0);
-  reflectedLight.directDiffuse += dl0.color * sh0 * diffuseColor.rgb * uTranslucency * (back * 2.2 + through * 0.6);
+  reflectedLight.directDiffuse += dl0.color * sh0 * diffuseColor.rgb * uTranslucency * (back * 2.2 + through * 0.6) * (1.0 - 0.75 * uNight);
 }
 #endif
 `;

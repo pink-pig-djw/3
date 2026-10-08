@@ -30,6 +30,7 @@ uniform vec3 uCloudAmb;
 uniform float uStars;
 uniform float uTime;
 uniform vec3 uGround;
+uniform vec3 uMS;
 `;
 
 const SKY_FUNCS = /* glsl */ `
@@ -141,6 +142,8 @@ void main() {
   vec3 col = vec3(0.0);
   if (uSunI > 0.0) col += atmosphere(r, uSunDir, uSunI, uHaze);
   if (uMoonI > 0.0) col += atmosphere(r, uMoonDir, uMoonI, uHaze);
+  // cheap multiple scattering: fills the earth's shadow at dusk with blue
+  col += uMS * (0.55 + 0.45 * (1.0 - r.y));
   if (rd.y < 0.0) {
     // below the horizon: distant hazy ground
     float k = smoothstep(0.0, -0.12, rd.y);
@@ -210,6 +213,7 @@ export class Sky {
       uStars: { value: 0 },
       uTime: { value: 0 },
       uGround: { value: new Vector3(0.05, 0.06, 0.04) },
+      uMS: { value: new Vector3() },
       uScatter: { value: null },
     };
 

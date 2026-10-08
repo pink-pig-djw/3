@@ -58,7 +58,9 @@ export class World {
     this.root.add(this.water);
 
     this.grass = createGrass(this.hf, masks, this.quality);
-    this.root.add(...this.grass.meshes);
+    // ?lite (headless tests): skip the most expensive geometry
+    const lite = new URLSearchParams(location.search).has('lite');
+    if (!lite) this.root.add(...this.grass.meshes);
 
     // ---- props -----------------------------------------------------------
     const [rocksGltf, rAlb, rNrm, rOrm, mossA, mossN] = await Promise.all([
@@ -91,7 +93,7 @@ export class World {
       this.hf,
       this.quality,
     );
-    this.root.add(...this.vegetation.meshes);
+    if (!lite) this.root.add(...this.vegetation.meshes);
     this.updaters.push((dt, cam) => this.vegetation.update(dt, cam));
 
     // ---- architecture --------------------------------------------------------
@@ -119,7 +121,7 @@ export class World {
     const s = this.layout.start;
     return {
       position: new Vector3(s.x, this.hf.height(s.x, s.z), s.z),
-      yaw: (s.yaw_deg * Math.PI) / 180,
+      yaw: (-s.yaw_deg * Math.PI) / 180, // yaw_deg is clockwise from north
       pitch: (s.pitch_deg * Math.PI) / 180,
     };
   }

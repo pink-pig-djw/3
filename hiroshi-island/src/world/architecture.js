@@ -38,11 +38,11 @@ function makeMaterials(tex, hf, moss) {
       side: opts.side ?? DoubleSide,
     });
     m.name = name;
-    if (opts.weather) patchWeathering(m, { hf, moss, mossAmount: opts.moss ?? 0.4, cacheKey: `arch-${name}` });
+    if (opts.weather) patchWeathering(m, { hf, moss, mossAmount: opts.moss ?? 0.4, streaks: name === 'stone', cacheKey: `arch-${name}` });
     return m;
   };
   const paper = new MeshStandardMaterial({
-    color: new Color(0.9, 0.87, 0.8),
+    color: new Color(0.74, 0.71, 0.64),
     roughness: 0.92,
     metalness: 0,
     emissive: new Color(1.0, 0.62, 0.32),

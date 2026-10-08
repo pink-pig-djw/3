@@ -33,7 +33,7 @@ vec3 atmosphere(vec3 rd, vec3 ld, float lightI, float haze) {
   vec2 ta = rsi(ro, rd, R_A);
   float tmax = ta.y;
   vec2 tg = rsi(ro, rd, R_E);
-  if (tg.x > 0.0) tmax = min(tmax, tg.x);
+  if (tg.x > 0.0 && tg.x < 1e8) tmax = min(tmax, tg.x);
   const int N = 16;
   const int NL = 8;
   float ds = tmax / float(N);
@@ -52,7 +52,7 @@ vec3 atmosphere(vec3 rd, vec3 ld, float lightI, float haze) {
     float dO = ozoneDensity(h) * ds;
     odR += dR; odM += dM; odO += dO;
     vec2 tgl = rsi(p, ld, R_E);
-    if (tgl.x > 0.0) continue; // in the planet's shadow
+    if (tgl.x > 0.0 && tgl.x < 1e8) continue; // in the planet's shadow (a miss returns 1e9)
     vec2 tl = rsi(p, ld, R_A);
     float dsl = tl.y / float(NL);
     float lR = 0.0, lM = 0.0, lO = 0.0;
@@ -93,7 +93,7 @@ const ozone = (h) => Math.max(0, 1 - Math.abs(h - 25000) / 15000);
 /** Optical depths (rayleigh, mie, ozone) from p along dir to the top of the atmosphere. */
 function opticalDepth(p, dir, haze, n = 24) {
   const tg = rsi(p, dir, R_E);
-  if (tg[0] > 0) return null;
+  if (tg[0] > 0 && tg[0] < 1e8) return null; // the planet is in the way
   const tl = rsi(p, dir, R_A);
   const ds = tl[1] / n;
   let r = 0;
@@ -124,7 +124,7 @@ export function skyRadiance(rd, ld, lightI, haze = 1) {
   const ta = rsi(ro, rd, R_A);
   let tmax = ta[1];
   const tg = rsi(ro, rd, R_E);
-  if (tg[0] > 0) tmax = Math.min(tmax, tg[0]);
+  if (tg[0] > 0 && tg[0] < 1e8) tmax = Math.min(tmax, tg[0]);
   const N = 16;
   const ds = tmax / N;
   const mu = rd[0] * ld[0] + rd[1] * ld[1] + rd[2] * ld[2];
