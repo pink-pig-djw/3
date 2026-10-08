@@ -1098,7 +1098,15 @@ async function loadAssets(onProgress) {
   }, undefined, () => reject(new Error(`${set}_${kind}.webp`))));
 
   const gltf = new GLTFLoader();
-  const loadModel = (name) => gltf.loadAsync(`${ASSET_BASE}models/${name}.glb`).then((g) => {
+  // hosts that only serve text get the models base64-encoded (<name>.glb.txt, see build); otherwise the .glb itself
+  const fetchModel = (name) => window.__islandModelsB64
+    ? fetch(`${ASSET_BASE}models/${name}.glb.txt`).then((r) => { if (!r.ok) throw new Error(name); return r.text(); }).then((t) => {
+      const bin = atob(t.trim()), a = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+      return a.buffer;
+    })
+    : fetch(`${ASSET_BASE}models/${name}.glb`).then((r) => { if (!r.ok) throw new Error(name); return r.arrayBuffer(); });
+  const loadModel = (name) => fetchModel(name).then((buf) => gltf.parseAsync(buf, '')).then((g) => {
     g.scene.updateMatrixWorld(true);
     for (const node of g.scene.children) {
       const entry = ASSETS.geo[node.name] = {};
