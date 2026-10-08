@@ -1,0 +1,25 @@
+{
+  "name": "hiroshi-island",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "浩的岛 — 一款以拍照与记忆为核心的写实治愈系网页游戏（Blender + Three.js）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "optimize": "node tools/optimize-models.mjs"
+  },
+  "dependencies": {
+    "n8ao": "2.0.1",
+    "postprocessing": "6.39.5",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "vite": "8.3.3",
+    "draco3dgltf": "1.5.7"
+  }
+}
