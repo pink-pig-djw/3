@@ -34,17 +34,8 @@ export class Subjects {
   targets(camera, timeName, player) {
     const t = {};
     const life = this.life;
-    // nearest fish to the camera
-    let fish = null;
-    let fd = Infinity;
-    for (const f of life.fish) {
-      const d = f.pos.distanceTo(camera.position);
-      if (d < fd) {
-        fd = d;
-        fish = f;
-      }
-    }
-    if (fish) t.fish = [{ pos: fish.pos.clone(), radius: 0.13, minSize: 0.028, water: true }];
+    // any of the trout in the pool
+    t.fish = life.fish.map((f) => ({ pos: f.pos.clone(), radius: 0.13 * f.s, minSize: 0.028, water: true }));
     const inStream = this.world.hf.waterDepth(player.pos.x, player.pos.z) > 0.0;
     t.view = [
       { pos: this.culvertCenter.clone(), radius: 2.0, minSize: 0.05, require: () => inStream, why: FEEDBACK.where, group: 'view' },

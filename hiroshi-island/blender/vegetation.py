@@ -700,7 +700,7 @@ def smooth_chain(P, iters=2):
 def tree_wood_arrays(pos, r, chains, lod, zmax, phase_rnd):
     V, F, UV, W = [], [], [], []
     base = 0
-    min_r = 0.02 if lod == 0 else 0.05
+    min_r = (0.026, 0.05, 0.09)[lod]
     for ci, ch in enumerate(chains):
         ch = [n for n in ch if r[n] >= min_r * 0.7] if len(ch) > 2 else ch
         if len(ch) < 2:
@@ -712,8 +712,8 @@ def tree_wood_arrays(pos, r, chains, lod, zmax, phase_rnd):
             continue
         rmax = R.max()
         nr = (10 if rmax > 0.15 else 7 if rmax > 0.06 else 5 if rmax > 0.03 else 3)
-        if lod == 1:
-            nr = max(3, nr // 2)
+        if lod >= 1:
+            nr = max(3, nr // (2 * lod))
         phase = phase_rnd.uniform(0, 1)
         prev = None
         acc = 0.0
@@ -753,7 +753,7 @@ def tree_wood_arrays(pos, r, chains, lod, zmax, phase_rnd):
 
 def tree_cards(pos, r, children, spec, rnd, lod, zmax):
     leaf_nodes = [i for i in range(len(pos)) if r[i] < (0.026 if lod == 0 else 0.03) and pos[i][2] > spec["trunk"] * 0.8]
-    keep = 1.0 if lod == 0 else 0.62
+    keep = (1.0, 0.62, 0.12)[lod]
     cards = []
 
     class _B:
@@ -765,7 +765,7 @@ def tree_cards(pos, r, children, spec, rnd, lod, zmax):
         b = _B()
         b.phase = float((i * 0.618) % 1.0) * 6.283
         cards.append((Vector(pos[i]), b))
-    size = spec["size"] if lod == 0 else (spec["size"][0] * 1.45, spec["size"][1] * 1.5)
+    size = (spec["size"], (spec["size"][0] * 1.45, spec["size"][1] * 1.5), (spec["size"][0] * 2.6, spec["size"][1] * 2.9))[lod]
     return build_leaf_arrays(cards, None, rnd, spec["cell"], size, zmax)
 
 
@@ -782,9 +782,9 @@ def build_trees():
         chains = chains_from(pos, par, r, children)
         zmax = pos[:, 2].max()
         log(f"tree {v}: {len(pos)} nodes, trunk radius {r[0]:.2f} m, height {zmax:.1f} m")
-        for lod in (0, 1):
+        for lod in (0, 1, 2):
             tv, tf, tuv, tw = tree_wood_arrays(pos, r.copy(), chains, lod, zmax, np.random.default_rng(9 + v))
-            name = f"tree_{v}{'_lod1' if lod else ''}"
+            name = f"tree_{v}{'' if lod == 0 else f'_lod{lod}'}"
             wood = make_mesh_obj(name + "_bark", tv, tf, tuv, tw, mat=bark)
             lv, lf, luv, ln, lc, lw = tree_cards(pos, r, children, spec, np.random.default_rng(77 + v + lod), lod, zmax)
             leaf = make_mesh_obj(name + "_leaves", lv, lf, luv, lw, colors=lc, normals=ln, mat=leaves)

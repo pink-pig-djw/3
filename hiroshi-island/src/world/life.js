@@ -90,9 +90,9 @@ export function createLife(gltf, world) {
     a: (i / nFish) * Math.PI * 2,
     r: 1.4 + (i % 3) * 1.1,
     speed: 0.12 + (i % 4) * 0.05,
-    depth: 0.45 + (i % 3) * 0.25,
+    depth: 0.3 + (i % 3) * 0.16,
     phase: i * 1.3,
-    s: 0.85 + (i % 4) * 0.12,
+    s: 1.25 + (i % 4) * 0.12,
     pos: new Vector3(),
   }));
 

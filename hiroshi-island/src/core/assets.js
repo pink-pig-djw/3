@@ -30,7 +30,6 @@ export class Assets {
     this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
     const draco = new DRACOLoader();
     draco.setDecoderPath(new URL('draco/', new URL(import.meta.env.BASE_URL, window.location.href)).href);
-    draco.setDecoderConfig({ type: 'wasm' });
     this.gltfLoader.setDRACOLoader(draco);
     this.maxAniso = renderer.capabilities.getMaxAnisotropy();
     this.cache = new Map();

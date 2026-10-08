@@ -209,19 +209,13 @@ export function createVegetation(gltfTrees, gltfPlants, maps, layout, hf, qualit
         colliders.push({ x: t.p[0], z: t.p[2], r: 0.38 * t.s, top: y + 30, tree: true });
         return mk(t.p[0], y, t.p[2], t.yaw, t.s, 7 * t.s);
       });
-    const lod0 = byName[`tree_${v}`];
-    const lod1 = byName[`tree_${v}_lod1`];
-    sets.push(
-      new InstancedSet({
-        name: `tree${v}`,
-        items,
-        lods: [
-          { parts: toParts(lod0), maxDist: 70 },
-          { parts: toParts(lod1), maxDist: Infinity },
-        ],
-        maxDistance: quality.treeDistance,
-      }),
-    );
+    const lods = [
+      { parts: toParts(byName[`tree_${v}`]), maxDist: 60 },
+      { parts: toParts(byName[`tree_${v}_lod1`]), maxDist: 135 },
+    ];
+    if (byName[`tree_${v}_lod2`]) lods.push({ parts: toParts(byName[`tree_${v}_lod2`]), maxDist: Infinity });
+    else lods[1].maxDist = Infinity;
+    sets.push(new InstancedSet({ name: `tree${v}`, items, lods, maxDistance: quality.treeDistance }));
   }
   // bushes
   for (let v = 0; v < 2; v++) {
