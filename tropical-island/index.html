@@ -490,6 +490,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 window.__islandStarted = true;
 
@@ -1063,7 +1064,8 @@ TriS tRock;` : ''}`)
 //  opened straight from disk — everything falls back to the procedural look.
 // =====================================================================
 const ASSET_BASE = 'assets/';
-const ASSETS = { ok: false, tex: {}, geo: {}, regions: null, mean: {} };
+const ASSETS = { ok: false, tex: {}, geo: {}, regions: null, mean: {}, people: null };
+const PEOPLE_IDS = ['kai', 'koa', 'chen', 'noa', 'leilani', 'lani', 'mele', 'ama', 'boy', 'girl'];
 const TEX_SETS = ['sand', 'ground', 'rock', 'bark', 'wood', 'thatch', 'coral', 'brain'];
 const GLTF_UV = new Set(['bark', 'foliage']);   // sampled through the models' own UVs (glTF: no flip)
 
@@ -1098,15 +1100,7 @@ async function loadAssets(onProgress) {
   }, undefined, () => reject(new Error(`${set}_${kind}.webp`))));
 
   const gltf = new GLTFLoader();
-  // hosts that only serve text get the models base64-encoded (<name>.glb.txt, see build); otherwise the .glb itself
-  const fetchModel = (name) => window.__islandModelsB64
-    ? fetch(`${ASSET_BASE}models/${name}.glb.txt`).then((r) => { if (!r.ok) throw new Error(name); return r.text(); }).then((t) => {
-      const bin = atob(t.trim()), a = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
-      return a.buffer;
-    })
-    : fetch(`${ASSET_BASE}models/${name}.glb`).then((r) => { if (!r.ok) throw new Error(name); return r.arrayBuffer(); });
-  const loadModel = (name) => fetchModel(name).then((buf) => gltf.parseAsync(buf, '')).then((g) => {
+  const loadModel = (name) => fetchGLB(`${ASSET_BASE}models/${name}.glb`).then((buf) => gltf.parseAsync(buf, '')).then((g) => {
     g.scene.updateMatrixWorld(true);
     for (const node of g.scene.children) {
       const entry = ASSETS.geo[node.name] = {};
@@ -1136,17 +1130,65 @@ async function loadAssets(onProgress) {
     loadJSON('tex/foliage.json').then((j) => { ASSETS.regions = j.regions; }),
     loadJSON('tex/stats.json').then((j) => { for (const k in j) ASSETS.mean[k] = new THREE.Vector3(...j[k]); }),
   ]);
+  // the islanders come separately: if they fail, the island keeps its textures and the old figures walk on
+  const people = loadPeople(texLoader, aniso).catch((err) => { console.warn('Islanders unavailable, using the simple figures:', err && err.message); return null; });
   let timer;
-  const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), 60000); });
+  const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), 90000); });
   try {
     await Promise.race([work, timeout]);
     ASSETS.ok = true;
+    ASSETS.people = await Promise.race([people, timeout.catch(() => null)]);
   } catch (err) {
     console.warn('Blender assets unavailable, using the procedural look:', err && err.message);
     ASSETS.ok = false;
   }
   clearTimeout(timer);
   return ASSETS.ok;
+}
+
+// hosts that only serve text get the models base64-encoded (<name>.glb.txt, see build); otherwise the .glb itself
+function fetchGLB(url) {
+  if (!window.__islandModelsB64) return fetch(url).then((r) => { if (!r.ok) throw new Error(url); return r.arrayBuffer(); });
+  return fetch(url + '.txt').then((r) => { if (!r.ok) throw new Error(url); return r.text(); }).then((t) => {
+    const bin = atob(t.trim()), a = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+    return a.buffer;
+  });
+}
+
+// The islanders (blender/people.py, blender/anims.py): one skinned model and texture set per character,
+// and a shared set of motion-capture clips on the same skeleton.
+async function loadPeople(texLoader, aniso) {
+  const base = ASSET_BASE + 'people/';
+  const gltf = new GLTFLoader();
+  const tex = (name, srgb) => new Promise((resolve, reject) => texLoader.load(base + 'tex/' + name + '.webp', (t) => {
+    if (IS_TOUCH && t.image && t.image.width > 512) {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 512;
+      const g = cv.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(t.image, 0, 0, 512, 512);
+      t.image = cv;
+    }
+    t.flipY = false;     // glTF UVs
+    t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    t.anisotropy = aniso;
+    t.needsUpdate = true;
+    resolve(t);
+  }, undefined, () => reject(new Error(name))));
+  const meta = await fetch(base + 'anims.json').then((r) => { if (!r.ok) throw new Error('anims.json'); return r.json(); });
+  const [anims, hair, ...chars] = await Promise.all([
+    fetchGLB(base + 'anims.glb').then((b) => gltf.parseAsync(b, '')),
+    tex('hair_c', true),
+    ...PEOPLE_IDS.map(async (id) => {
+      const [g, skin_c, skin_n, skin_r, eyes_c, cloth_c, cloth_n] = await Promise.all([
+        fetchGLB(base + id + '.glb').then((b) => gltf.parseAsync(b, '')),
+        tex(id + '_skin_c', true), tex(id + '_skin_n'), tex(id + '_skin_r'), tex(id + '_eyes_c', true),
+        tex(id + '_cloth_c').catch(() => null), tex(id + '_cloth_n').catch(() => null),
+      ]);
+      return [id, { gltf: g, tex: { skin_c, skin_n, skin_r, eyes_c, cloth_c, cloth_n } }];
+    }).map((p) => p.catch((err) => { console.warn('islander missing:', err && err.message); return null; })),
+  ]);
+  if (!chars.some(Boolean)) throw new Error('no islanders');
+  // the reference skeleton's hip height (Blender Z) scales each clip's root motion to every body
+  return { chars: Object.fromEntries(chars.filter(Boolean)), clips: anims.animations, meta: meta.clips, refHipY: meta.hips[2], hair };
 }
 
 // Copy of an asset geometry, with the wind attributes every windify()'d material expects.
@@ -2900,7 +2942,7 @@ function bungalow(x, z, rotY, { accent = '#2f8f87', deckLight = true, stilts = 3
   // loungers and a little table
   for (const s of [-1, 1]) {
     placed(new THREE.BoxGeometry(0.62, 0.12, 1.5), '#fbf3e6', { p: [s * 1.2 - 0.2, 0.26, 1.95], r: [0, Math.PI / 2 * 0, 0] }, M, P);
-    placed(new THREE.BoxGeometry(0.62, 0.1, 0.55), '#fbf3e6', { p: [s * 1.2 - 0.2, 0.48, 1.3], r: [-0.7, 0, 0] }, M, P);
+    placed(new THREE.BoxGeometry(0.62, 0.1, 0.55), '#fbf3e6', { p: [s * 1.2 - 0.2, 0.545, 1.24], r: [0.7, 0, 0] }, M, P);   // backrest rising at the head end
     placed(new THREE.BoxGeometry(0.56, 0.05, 1.3), s < 0 ? accent : '#f4a259', { p: [s * 1.2 - 0.2, 0.34, 2.0] }, M, 'cloth');
   }
   placed(new THREE.CylinderGeometry(0.3, 0.3, 0.05, 10), '#e9d2ad', { p: [0.0, 0.5, 2.0] }, M, W);
@@ -3289,14 +3331,329 @@ function buildStructures() {
   torch(SITE.hutB.x + 1.4, SITE.hutB.z + 2.6);
   // a viewpoint bench by the pool
   { const x = SITE.lookout.x, z = SITE.lookout.z, y = groundHeight(x, z), M = frameAt(x, y, z, -2.2);
-    placed(woodBox(1.4, 0.08, 0.4), '#b88a5c', { p: [0, 0.45, 0] }, M, 'wood');
-    placed(woodBox(1.4, 0.35, 0.06), '#b88a5c', { p: [0, 0.75, -0.2], r: [-0.15, 0, 0] }, M, 'wood');
-    for (const s of [-0.6, 0.6]) placed(woodBox(0.08, 0.45, 0.36), '#8a6644', { p: [s, 0.22, 0] }, M, 'wood');
-    A.lookoutSeat = new THREE.Vector3(0, 0.5, 0.05).applyMatrix4(M); A.lookoutRot = -2.2 + Math.PI; }
+    placed(woodBox(1.4, 0.08, 0.4), '#b88a5c', { p: [0, 0.34, 0] }, M, 'wood');
+    placed(woodBox(1.4, 0.35, 0.06), '#b88a5c', { p: [0, 0.64, -0.2], r: [-0.15, 0, 0] }, M, 'wood');
+    for (const s of [-0.6, 0.6]) placed(woodBox(0.08, 0.34, 0.36), '#8a6644', { p: [s, 0.17, 0] }, M, 'wood');
+    for (const s of [-0.42, 0.42]) { const q = toWorld(M, s, 0, -0.02); cCircle(q.x, q.z, 0.25, y - 0.5, y + 0.8); }
+    A.lookoutSeat = new THREE.Vector3(0, 0.39, 0.05).applyMatrix4(M); A.lookoutRot = -2.2 + Math.PI; }
 
   buildFlames();
   flushBuild();
   return A;
+}
+
+
+// =====================================================================
+//  Islanders: MakeHuman bodies dressed, groomed and baked in Blender (blender/people.py),
+//  moved by CMU motion capture retargeted to their skeleton (blender/anims.py)
+// =====================================================================
+const HUMAN_SCALE = 0.84;   // the island is built a little under life size (see FP_EYE)
+// outfit colours (a: first garment, b: second garment, p: print) and hair tint per character
+const LOOKS = {
+  kai:     { a: '#1f5f8b', b: '#1f5f8b', p: '#eef1f0', hair: '#2b221d' },
+  koa:     { a: '#b3392d', b: '#cbb791', p: '#f4e3c1', hair: '#aaa49b' },
+  chen:    { a: '#e7e2d7', b: '#37485d', p: '#e7e2d7', hair: '#2c2927' },
+  noa:     { a: '#35393e', b: '#6b7452', p: '#35393e', hair: '#1d1917' },
+  leilani: { a: '#e88ca1', b: '#e88ca1', p: '#fff7ef', hair: '#271d18' },
+  lani:    { a: '#f2efe7', b: '#3c608b', p: '#f2efe7', hair: '#c79d62' },
+  mele:    { a: '#e3a940', b: '#2b6c67', p: '#e3a940', hair: '#2b2422' },
+  ama:     { a: '#c9344b', b: '#c9344b', p: '#c9344b', hair: '#231a16' },
+  boy:     { a: '#509cd2', b: '#d9aa50', p: '#509cd2', hair: '#2b211a' },
+  girl:    { a: '#ff90ac', b: '#ff90ac', p: '#ffffff', hair: '#5b3d29' },
+};
+
+// Skin: baked albedo/normal/AO+roughness, a soft sheen for the fine hair that catches the light at grazing angles.
+function skinMaterial(T) {
+  return submerge(new THREE.MeshPhysicalMaterial({
+    map: T.skin_c, normalMap: T.skin_n, normalScale: new THREE.Vector2(0.6, -0.6), roughnessMap: T.skin_r, aoMap: T.skin_r,
+    roughness: 1.5, ior: 1.4, sheen: 0.35, sheenRoughness: 0.55, sheenColor: new THREE.Color('#ffb49a'),
+  }));
+}
+// Fabric: R = baked shading, G = where the print goes, B = which garment of the outfit (so a shirt and shorts differ).
+function clothMaterial(T, a, b, p) {
+  const u = { cA: { value: C(a) }, cB: { value: C(b) }, cP: { value: C(p) } };
+  const m = new THREE.MeshStandardMaterial({ map: T.cloth_c, normalMap: T.cloth_n, normalScale: new THREE.Vector2(0.8, -0.8), roughness: 0.92, side: THREE.DoubleSide });
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, u);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 cA, cB, cP;')
+      .replace('#include <map_fragment>', `vec4 cloth = texture2D(map, vMapUv);
+  diffuseColor.rgb *= mix(mix(cA, cB, step(0.5, cloth.b)), cP, cloth.g) * cloth.r;`);
+  };
+  m.customProgramCacheKey = () => 'cloth';
+  return submerge(m);
+}
+
+const HUMAN_KITS = {};
+// Everything the instances of one character share: the template, its materials, and the clips fitted to its size.
+function humanKit(id) {
+  if (!ASSETS.people.chars[id]) id = Object.keys(ASSETS.people.chars)[0];   // one that failed to load: stand in with another
+  if (HUMAN_KITS[id]) return HUMAN_KITS[id];
+  const src = ASSETS.people.chars[id], T = src.tex, look = LOOKS[id];
+  const template = src.gltf.scene;
+  template.updateMatrixWorld(true);
+  let hips = null, head = null, top = 0, ankleY = 0.07, toeY = 0.03;
+  template.traverse((o) => {
+    if (o.name === 'mixamorigHips') hips = o;
+    if (o.name === 'mixamorigHead') head = o;
+    if (o.name === 'mixamorigLeftFoot') ankleY = o.getWorldPosition(new THREE.Vector3()).y;      // ankle and ball of the foot above the sole
+    if (o.name === 'mixamorigLeftToeBase') toeY = o.getWorldPosition(new THREE.Vector3()).y;
+    if (o.isMesh && o.material.name === 'skin') { o.geometry.computeBoundingBox(); top = o.geometry.boundingBox.max.y; }
+  });
+  // the clips were captured on a reference body: scale the root motion to this one's hip height
+  const ratio = hips.position.y / ASSETS.people.refHipY;
+  const clips = {};
+  let sitHip = 0;
+  for (const c of ASSETS.people.clips) {
+    const k = c.clone();
+    for (const tr of k.tracks) {
+      if (tr.name !== 'mixamorigHips.position') continue;
+      for (let i = 0; i < tr.values.length; i++) tr.values[i] *= ratio;
+      if (c.name === 'sit') { for (let i = 1; i < tr.values.length; i += 3) sitHip += tr.values[i]; sitHip /= tr.values.length / 3; }
+    }
+    clips[c.name] = k;
+  }
+  const headY = head.getWorldPosition(new THREE.Vector3()).y;
+  const mats = {
+    skin: skinMaterial(T),
+    eyes: submerge(new THREE.MeshStandardMaterial({ map: T.eyes_c, color: '#e4ded6', roughness: 0.06 })),
+    hair: submerge(new THREE.MeshStandardMaterial({ map: ASSETS.people.hair, color: look.hair, alphaTest: 0.4, side: THREE.DoubleSide, roughness: 0.5 })),
+  };
+  return (HUMAN_KITS[id] = { id, template, clips, ratio, height: top, crown: top - headY, sitHip, ankleY, toeY, mats, T, look });
+}
+
+// ---- things people wear and carry (sizes in metres of the character) ----
+function hatGeo(kind) {
+  if (kind === 'straw') return merge([
+    part(new THREE.CylinderGeometry(0.2, 0.21, 0.012, 20), '#e3c98a', { p: [0, 0.006, 0] }),
+    part(new THREE.CylinderGeometry(0.098, 0.112, 0.095, 18, 1, true), '#e3c98a', { p: [0, 0.055, 0] }),
+    part(new THREE.CylinderGeometry(0.06, 0.098, 0.02, 18), '#dcc082', { p: [0, 0.112, 0] }),
+    part(new THREE.CylinderGeometry(0.114, 0.114, 0.022, 18, 1, true), '#5a3a2a', { p: [0, 0.02, 0] }),
+  ]);
+  return merge([   // baseball cap
+    part(new THREE.SphereGeometry(0.108, 16, 8, 0, TAU, 0, Math.PI / 2), pick(['#c2392f', '#1f3a5f', '#e0a526', '#f2f0ea']), { s: [1, 0.85, 1.08] }),
+    part(new THREE.CylinderGeometry(0.1, 0.1, 0.008, 14, 1, false, -Math.PI / 2, Math.PI), '#1f2a36', { p: [0, 0.004, 0.09], s: [0.95, 1, 0.75] }),
+  ]);
+}
+function surfboardGeo() {     // 1.9 m long, 48 cm wide, 7 cm thick; nose along +z, deck up
+  return paint(xf(new THREE.CapsuleGeometry(0.24, 1.42, 6, 16), { r: [Math.PI / 2, 0, 0], s: [1, 1, 0.15] }), pick(['#f6f1e4', '#7fd1c7', '#ffd166', '#ff8a70']));
+}
+function lanternGroup() {
+  const g = new THREE.Group();
+  const frame = new THREE.Mesh(merge([
+    part(new THREE.CylinderGeometry(0.055, 0.065, 0.02, 10), '#2d2a26', { p: [0, 0.0, 0] }),
+    part(new THREE.CylinderGeometry(0.03, 0.06, 0.035, 10), '#2d2a26', { p: [0, 0.155, 0] }),
+    part(new THREE.TorusGeometry(0.03, 0.004, 4, 10, Math.PI), '#2d2a26', { p: [0, 0.18, 0] }),
+    ...[0, 1, 2, 3].map((k) => part(new THREE.BoxGeometry(0.006, 0.13, 0.006), '#2d2a26', { p: [Math.cos(k * Math.PI / 2) * 0.052, 0.075, Math.sin(k * Math.PI / 2) * 0.052] })),
+  ]), personMat);
+  const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.048, 0.12, 10), MAT.glow);
+  glass.position.y = 0.075; frame.castShadow = true;
+  g.add(frame, glass);
+  g.userData.glass = glass;
+  return g;
+}
+function bucketGeo() {
+  return merge([
+    part(new THREE.CylinderGeometry(0.085, 0.065, 0.13, 12, 1, true), '#ff6f9a', { p: [0, 0.065, 0] }),
+    part(new THREE.CylinderGeometry(0.065, 0.065, 0.006, 12), '#ff6f9a', { p: [0, 0.003, 0] }),
+    part(new THREE.TorusGeometry(0.085, 0.004, 4, 14, Math.PI), '#f2f2f2', { p: [0, 0.13, 0] }),
+  ]);
+}
+
+const _hv = new THREE.Vector3(), _hw = new THREE.Vector3(), _hu = new THREE.Vector3(), _hq = new THREE.Quaternion();
+const _Y = new THREE.Vector3(0, 1, 0);
+const _ik = [0, 1, 2, 3, 4].map(() => new THREE.Vector3()), _ikq = [0, 1, 2].map(() => new THREE.Quaternion());
+// Turns a bone by a world-space rotation (keeping its children attached).
+function rotateBoneWorld(bone, q) {
+  bone.parent.getWorldQuaternion(_ikq[1]); bone.getWorldQuaternion(_ikq[2]);
+  bone.quaternion.copy(_ikq[1].invert().multiply(q).multiply(_ikq[2]));
+  bone.updateWorldMatrix(false, true);
+}
+class Human {
+  constructor(id, { a, b, p, hat = null, scale = 1 } = {}) {
+    const kit = humanKit(id), look = kit.look;
+    this.kit = kit; this.id = id;
+    this.root = new THREE.Group();
+    this.model = SkeletonUtils.clone(kit.template);
+    this.root.add(this.model);
+    this.root.scale.setScalar(HUMAN_SCALE * scale);
+    this.bones = {};
+    const cloth = kit.T.cloth_c ? clothMaterial(kit.T, a || look.a, b || look.b, p || look.p) : null;
+    this.model.traverse((o) => {
+      if (o.isBone) this.bones[o.name.replace('mixamorig', '')] = o;
+      if (!o.isMesh) return;
+      const n = o.material.name;
+      o.material = n === 'cloth' ? cloth : kit.mats[n] || kit.mats.skin;
+      o.castShadow = n !== 'eyes'; o.receiveShadow = true;
+      o.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.9, 0), 1.45);   // covers every pose of the clips
+    });
+    this.mixer = new THREE.AnimationMixer(this.model);
+    this.actions = {}; this.cur = null; this.clip = null; this.acc = 0; this.tick = (rand() * 4) | 0;
+    this.after = [];    // props that follow the hands, run after each pose update
+    this.feet = ['Left', 'Right'].map((side) => ({ side, ankle: new THREE.Vector3(), toe: new THREE.Vector3(), sole: 0, sup: 0 }));
+    this.gy = undefined;
+    this.legBones = ['Left', 'Right'].flatMap((s) => ['UpLeg', 'Leg', 'Foot'].map((b) => this.bones[s + b]));
+    this.legClip = this.legBones.map(() => new THREE.Quaternion()); this.clipSaved = false;
+    if (hat) {
+      const m = new THREE.Mesh(hatGeo(hat), personMat);
+      m.position.set(0, kit.crown - (hat === 'straw' ? 0.072 : 0.058), hat === 'straw' ? 0.004 : 0.012);
+      m.rotation.x = -0.08; m.castShadow = true;
+      this.bones.Head.add(m);
+    }
+    scene.add(this.root);
+  }
+  get scale() { return this.root.scale.x; }
+  // ground speed of a locomotion clip on this body (world units per second at normal playback)
+  clipSpeed(name) { return ASSETS.people.meta[name].speed * this.kit.ratio * this.scale; }
+  play(name, { fade = 0.45, ts = 1, sync = false } = {}) {
+    if (this.clip === name) { this.cur.timeScale = ts; return this; }
+    const a = this.actions[name] || (this.actions[name] = this.mixer.clipAction(this.kit.clips[name]));
+    a.reset(); a.timeScale = ts; a.play();
+    const d = a.getClip().duration;
+    a.time = this.cur && sync ? (this.cur.time / this.cur.getClip().duration) * d : rand() * d;
+    if (this.cur) { if (fade > 0) this.cur.crossFadeTo(a, fade, false); else this.cur.stop(); }
+    this.cur = a; this.clip = name;
+    return this;
+  }
+  // ground(x, z, y): height of what the feet stand on. With it, the feet are planted on uneven ground (see plant).
+  update(dt, ground = null, seated = false) {
+    // far from the camera the pose is refreshed less often
+    this.acc += dt;
+    const d2 = this.root.getWorldPosition(_hv).distanceToSquared(camera.position);
+    const every = d2 > 4900 ? 4 : d2 > 1200 ? 2 : 1;
+    if (++this.tick % every === 0) {
+      this.mixer.update(this.acc); this.acc = 0;
+      if (ground) { this.legBones.forEach((b, i) => this.legClip[i].copy(b.quaternion)); this.clipSaved = true; }
+    } else if (ground && this.clipSaved) this.legBones.forEach((b, i) => b.quaternion.copy(this.legClip[i]));   // undo last frame's fit, then fit again
+    if (ground) this.plant(ground, seated, dt);
+    for (const f of this.after) f();
+  }
+  // Feet on real ground. The clips were captured on a flat floor; here the floor can slope, step onto a deck or
+  // arch over the bridge. Standing or walking, the body moves until the foot nearest its ground touches it; a foot
+  // that would then sink is lifted, and one that should be planted but hovers is lowered, by bending its leg.
+  // Running keeps the clip's flight. Seated, the body stays on the seat and both feet go onto the ground.
+  plant(ground, seated, dt) {
+    const s = this.scale, k = this.kit, y0 = this.root.position.y, run = this.clip === 'run';
+    let minGap = Infinity, minA = Infinity, low = Infinity;
+    for (const f of this.feet) {
+      const ft = this.bones[f.side + 'Foot'], tb = this.bones[f.side + 'ToeBase'];
+      ft.getWorldPosition(f.ankle); tb.getWorldPosition(f.toe);
+      const ex = f.toe.x - f.ankle.x, ez = f.toe.z - f.ankle.z, el = Math.hypot(ex, ez) || 1e-3;
+      // the ground under the heel, the ankle, the ball and the toe tips
+      const gHeel = ground(f.ankle.x - ex * 0.3, f.ankle.z - ez * 0.3, f.ankle.y), gAnk = ground(f.ankle.x, f.ankle.z, f.ankle.y);
+      const gBall = ground(f.toe.x, f.toe.z, f.toe.y), gTip = ground(f.toe.x + ex * 0.45, f.toe.z + ez * 0.45, f.toe.y);
+      // a foot on or near the ground tilts with the slope under it, as feet do
+      const a0 = Math.min(f.ankle.y - k.ankleY * s, f.toe.y - k.toeY * s) - y0;
+      const w = seated ? 1 : clamp(1 - (a0 - 0.02) / 0.08, 0, 1);
+      const tilt = clamp(Math.atan2(gTip - gHeel, el * 1.75), -0.45, 0.45) * w;
+      if (Math.abs(tilt) > 0.005) {
+        _hu.set(-ez / el, 0, ex / el);     // the foot's left-right axis: turning about it by a positive angle lifts the toes
+        rotateBoneWorld(ft, _hq.setFromAxisAngle(_hu, tilt));
+        tb.getWorldPosition(f.toe);
+      }
+      const gapA = f.ankle.y - k.ankleY * s - Math.max(gHeel, gAnk), gapT = f.toe.y - k.toeY * s - Math.max(gBall, gTip);
+      f.gap = Math.min(gapA, gapT);
+      f.a = Math.min(f.ankle.y - k.ankleY * s, f.toe.y - k.toeY * s) - y0;     // height above the clip's own floor
+      minGap = Math.min(minGap, f.gap); minA = Math.min(minA, f.a); low = Math.min(low, Math.max(gHeel, gAnk, gBall, gTip));
+    }
+    let dy = 0;
+    if (!seated) {
+      const target = run ? low : y0 - minGap;     // running keeps the clip's flight; otherwise the nearest foot touches
+      this.gy = this.gy === undefined || target < this.gy ? target : this.gy + (target - this.gy) * Math.min(1, dt * 12);
+      dy = this.gy - y0;
+      this.root.position.y = this.gy;
+    }
+    for (const f of this.feet) {
+      const err = -(f.gap + dy);                 // > 0: in the ground, < 0: above it
+      const planted = seated || (!run && f.a - minA < 0.025);
+      if (err > 0.003 || (planted && err < -0.003)) {
+        _ik[4].copy(f.ankle); _ik[4].y += dy + clamp(err, -0.3, 0.3);
+        this.legIK(f.side, _ik[4]);
+      }
+    }
+  }
+  // Two-bone IK: bends the knee and swings the thigh so the ankle reaches `target`; the foot keeps its world orientation.
+  legIK(side, target) {
+    const up = this.bones[side + 'UpLeg'], lo = this.bones[side + 'Leg'], ft = this.bones[side + 'Foot'];
+    const H = up.getWorldPosition(_ik[0]), K = lo.getWorldPosition(_ik[1]), A = ft.getWorldPosition(_ik[2]), n = _ik[3];
+    ft.getWorldQuaternion(_ikq[0]);
+    const l1 = H.distanceTo(K), l2 = K.distanceTo(A);
+    const d = clamp(H.distanceTo(target), Math.abs(l1 - l2) + 1e-4, (l1 + l2) * 0.999);
+    const knee = (dd) => Math.acos(clamp((l1 * l1 + l2 * l2 - dd * dd) / (2 * l1 * l2), -1, 1));
+    const now = knee(H.distanceTo(A));
+    n.subVectors(H, K).cross(_hu.subVectors(A, K));
+    if (n.lengthSq() < 1e-10) n.set(-1, 0, 0).applyQuaternion(this.root.getWorldQuaternion(_hq));   // straight leg: the knee bends forward
+    n.normalize();
+    rotateBoneWorld(lo, _hq.setFromAxisAngle(n, knee(d) - now));
+    ft.getWorldPosition(A);
+    rotateBoneWorld(up, _hq.setFromUnitVectors(n.subVectors(A, H).normalize(), _hu.subVectors(target, H).normalize()));
+    lo.getWorldQuaternion(_hq);
+    ft.quaternion.copy(_hq.invert().multiply(_ikq[0]));
+    ft.updateWorldMatrix(false, true);
+  }
+  // world position in the palm of a hand ('Left' / 'Right')
+  grip(side, out) {
+    const h = this.bones[side + 'Hand'], m = this.bones[side + 'HandMiddle1'];
+    m.updateWorldMatrix(true, false);
+    out.setFromMatrixPosition(h.matrixWorld);
+    return out.lerp(_hw.setFromMatrixPosition(m.matrixWorld), 0.7);
+  }
+  forward(out) { return out.set(0, 0, 1).applyQuaternion(this.root.getWorldQuaternion(_hq)); }
+
+  // a surfboard carried flat on the head while walking (hands up on its rails), stood on its tail beside him otherwise
+  // (on his left, so the right arm is free to wave)
+  carrySurf() {
+    const board = new THREE.Mesh(surfboardGeo(), personMat);
+    board.castShadow = true;
+    const r = this.kit.ratio, head = this.bones.Head;
+    // standing: nose up, leaning a little in towards his left hand, deck facing him
+    const d = new THREE.Vector3(-0.1, 1, 0.03).normalize(), n = new THREE.Vector3(-1, 0, 0).addScaledVector(d, d.x).normalize();
+    const upright = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3().crossVectors(n, d), n, d));
+    let mode = null;
+    const qh = new THREE.Quaternion(), qr = new THREE.Quaternion();
+    this.after.push(() => {
+      const m = this.clip === 'walk_carry' ? 'head' : 'side';
+      if (m !== mode) {
+        mode = m;
+        if (m === 'head') { head.add(board); board.position.set(0, this.kit.crown + 0.08, 0.04); }
+        else { this.model.add(board); board.position.set(0.31 * r, 0.955 * r, 0.05 * r); board.quaternion.copy(upright); }
+      }
+      // on the head the board stays level, pointing where he walks, however his head nods
+      if (m === 'head') board.quaternion.copy(head.getWorldQuaternion(qh).invert().multiply(this.root.getWorldQuaternion(qr)));
+    });
+    return board;
+  }
+  // a lantern or a bucket hanging from one hand
+  hang(side, obj, drop) {
+    scene.add(obj);
+    this.after.push(() => {
+      this.grip(side, obj.position);
+      obj.position.y -= drop * this.scale;
+      obj.scale.setScalar(this.scale);
+      obj.rotation.y = this.root.rotation.y;
+    });
+    return obj;
+  }
+  // a long pole held in both hands: a fishing rod (pointing ahead and up) or a paddle (pointing down to the water)
+  pole(obj, { len, down = false }) {
+    scene.add(obj);
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), d = new THREE.Vector3(), pref = new THREE.Vector3();
+    this.after.push(() => {
+      this.grip('Right', a); this.grip('Left', b);
+      this.forward(pref);
+      if (down) pref.multiplyScalar(0.35).y = -1; else pref.y = 0.75;
+      pref.normalize();
+      d.subVectors(b, a);
+      const span = d.length();
+      if (span < 0.08 * this.scale) d.copy(pref);
+      else { d.divideScalar(span); if (d.dot(pref) < 0) { d.negate(); a.copy(b); } d.lerp(pref, 0.35).normalize(); }
+      // a: the hand nearer the butt end; the pole starts a little behind it
+      obj.position.copy(a).addScaledVector(d, -0.18 * this.scale);
+      obj.quaternion.setFromUnitVectors(_Y, d);
+      obj.scale.setScalar(this.scale);
+      obj.userData.tip = (obj.userData.tip || new THREE.Vector3()).copy(obj.position).addScaledVector(d, len * this.scale);
+    });
+    return obj;
+  }
 }
 
 
@@ -3442,11 +3799,106 @@ class Track {
     const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p[0] ?? p.x, 0, p[1] ?? p.z)), closed, 'centripetal');
     const n = Math.max(8, Math.ceil(curve.getLength() / 0.25));
     this.p = curve.getSpacedPoints(n);
-    if (yFn) for (const p of this.p) p.y = yFn(p.x, p.z);
+    this.yFn = yFn; this.closed = closed;
+    this.measure();
+  }
+  measure() {
+    if (this.yFn) for (const p of this.p) p.y = this.yFn(p.x, p.z);
     this.cum = [0];
     for (let i = 1; i < this.p.length; i++) this.cum.push(this.cum[i - 1] + this.p[i].distanceTo(this.p[i - 1]));
     this.length = this.cum[this.cum.length - 1];
-    this.closed = closed;
+  }
+  // Re-routes the path round obstacles ({x, z, r} circles): on a 20 cm grid, every stretch that runs into one is
+  // replaced by the shortest way round (A*) over cells where `ok(x, z)` says one can walk; open ends that start or
+  // stop inside something are cut back. Then the bends are smoothed without cutting corners back into anything.
+  avoid(obs, ok) {
+    let P = this.p;
+    const cs = 0.2, pad = 7;
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (const p of P) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
+    x0 -= pad; z0 -= pad; x1 += pad; z1 += pad;
+    const W = Math.ceil((x1 - x0) / cs) + 1, D = Math.ceil((z1 - z0) / cs) + 1;
+    const hard = new Uint8Array(W * D), memo = new Int8Array(W * D);     // memo: 0 unknown, 1 free, -1 blocked
+    const ys = new Float32Array(W * D).fill(NaN), yAt = (k) => (Number.isNaN(ys[k]) ? (ys[k] = this.yFn(x0 + (k % W) * cs, z0 + Math.floor(k / W) * cs)) : ys[k]);
+    for (const o of obs) {
+      if (o.x + o.r < x0 || o.x - o.r > x1 || o.z + o.r < z0 || o.z - o.r > z1) continue;
+      for (let j = Math.max(0, Math.floor((o.z - o.r - z0) / cs)); j <= Math.min(D - 1, Math.ceil((o.z + o.r - z0) / cs)); j++)
+        for (let i = Math.max(0, Math.floor((o.x - o.r - x0) / cs)); i <= Math.min(W - 1, Math.ceil((o.x + o.r - x0) / cs)); i++)
+          if ((x0 + i * cs - o.x) ** 2 + (z0 + j * cs - o.z) ** 2 < o.r * o.r) hard[j * W + i] = 1;
+    }
+    const free = (i, j) => {
+      if (i < 0 || j < 0 || i >= W || j >= D) return false;
+      const k = j * W + i;
+      if (!memo[k]) memo[k] = !hard[k] && ok(x0 + i * cs, z0 + j * cs) ? 1 : -1;
+      return memo[k] > 0;
+    };
+    const cellOf = (p) => [Math.round((p.x - x0) / cs), Math.round((p.z - z0) / cs)];
+    const freeP = (p) => free(...cellOf(p));
+    if (!this.closed) { while (P.length > 4 && !freeP(P[0])) P.shift(); while (P.length > 4 && !freeP(P[P.length - 1])) P.pop(); }
+    const astar = (a, b) => {
+      const [ai, aj] = cellOf(a), [bi, bj] = cellOf(b), start = aj * W + ai, goal = bj * W + bi;
+      const g = new Float32Array(W * D).fill(Infinity), from = new Int32Array(W * D).fill(-1), heap = [];
+      const h = (k) => Math.hypot((k % W) - bi, Math.floor(k / W) - bj);
+      const push = (k, f) => { heap.push([f, k]); let c = heap.length - 1; while (c > 0) { const q = (c - 1) >> 1; if (heap[q][0] <= heap[c][0]) break; [heap[q], heap[c]] = [heap[c], heap[q]]; c = q; } };
+      const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let c = 0; for (;;) { const l = c * 2 + 1, r = l + 1; let m = c; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === c) break; [heap[m], heap[c]] = [heap[c], heap[m]]; c = m; } } return top; };
+      g[start] = 0; push(start, h(start));
+      for (let n = 0; heap.length && n < 250000; n++) {
+        const [, k] = pop();
+        if (k === goal) { const path = []; for (let c = goal; c >= 0; c = from[c]) path.push(new THREE.Vector3(x0 + (c % W) * cs, 0, z0 + Math.floor(c / W) * cs)); return path.reverse(); }
+        const ki = k % W, kj = Math.floor(k / W);
+        for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+          if (!di && !dj) continue;
+          const ni = ki + di, nj = kj + dj;
+          if (!free(ni, nj) || (di && dj && (!free(ki + di, kj) || !free(ki, kj + dj)))) continue;
+          const nk = nj * W + ni, ng = g[k] + (di && dj ? 1.4142 : 1);
+          if (Math.abs(yAt(nk) - yAt(k)) > 0.32) continue;     // a step up or down, not a drop off a deck
+          if (ng < g[nk]) { g[nk] = ng; from[nk] = k; push(nk, ng + h(nk)); }
+        }
+      }
+      return null;
+    };
+    // replace every blocked stretch by a way round it
+    const out = [];
+    for (let i = 0; i < P.length;) {
+      if (freeP(P[i])) { out.push(P[i]); i++; continue; }
+      let j = i; while (j < P.length && !freeP(P[j])) j++;
+      const a = out[out.length - 1], b = P[j];
+      const way = a && b ? astar(a, b) : null;
+      if (!way) break;          // no way round: the path ends here and walkers turn back
+      out.push(...way.slice(1, -1));
+      i = j;
+    }
+    P = this.p = out;
+    // a step too high to walk (onto a deck from the sand, say) splits the path: keep the longest walkable piece
+    if (!this.closed) {
+      let best = [0, 0], from = 0, len = 0, bestLen = -1;
+      for (let i = 1; i <= P.length; i++) {
+        const cut = i === P.length || Math.abs(this.yFn(P[i].x, P[i].z) - this.yFn(P[i - 1].x, P[i - 1].z)) > 0.32;
+        if (!cut) { len += P[i].distanceTo(P[i - 1]); continue; }
+        if (len > bestLen) { bestLen = len; best = [from, i]; }
+        from = i; len = 0;
+      }
+      P = this.p = P.slice(best[0], best[1]);
+    }
+    // smooth the staircase of grid cells, never into a blocked cell
+    for (let pass = 0; pass < 12; pass++) for (let i = 1; i < P.length - 1; i++) {
+      const nx = P[i].x * 0.5 + (P[i - 1].x + P[i + 1].x) * 0.25, nz = P[i].z * 0.5 + (P[i - 1].z + P[i + 1].z) * 0.25;
+      const [ci, cj] = cellOf({ x: nx, z: nz });
+      if (free(ci, cj) && free(ci + 1, cj) && free(ci - 1, cj) && free(ci, cj + 1) && free(ci, cj - 1)) { P[i].x = nx; P[i].z = nz; }
+    }
+    // even spacing again
+    const curve = new THREE.CatmullRomCurve3(P.map((p) => new THREE.Vector3(p.x, 0, p.z)), this.closed, 'centripetal');
+    const lenNow = P.reduce((m, p, k) => (k ? m + p.distanceTo(P[k - 1]) : 0), 0);
+    this.p = curve.getSpacedPoints(Math.max(8, Math.ceil(lenNow / 0.25)));
+    // how far a walker may keep to the side here without brushing anything
+    this.lane = this.p.map((p) => clamp(Math.min(...obs.map((o) => Math.hypot(p.x - o.x, p.z - o.z) - o.r0)) - 0.26, 0, WALK_LANE));
+    this.measure();
+    return this;
+  }
+  laneAt(s) {
+    if (!this.lane) return WALK_LANE;
+    const i = Math.round(clamp(s, 0, this.length) / this.length * (this.p.length - 1));
+    return this.lane[clamp(i, 0, this.lane.length - 1)];
   }
   sample(s, out, tan) {
     const L = this.length;
@@ -3544,7 +3996,9 @@ const SHIRT = ['#ff6f61', '#ffd166', '#06d6a0', '#118ab2', '#f78fb3', '#ffffff',
 const SHORTS = ['#264653', '#3d5a80', '#d4a373', '#e9c46a', '#577590', '#6d597a', '#f1faee'];
 const HAIR = ['#2b1d14', '#4a3020', '#8a5a2b', '#d9b26a', '#1a1a1a', '#b5651d'];
 const personMat = submerge(weather(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 }), 0.72, 0.04));
-function makePerson({ kid = false, dress = null, hat = null, carry = null } = {}) {
+function makePerson(opts = {}) {
+  if (ASSETS.people && opts.who) return humanPerson(opts);
+  const { kid = false, dress = null, hat = null, carry = null } = opts;
   const skin = pick(SKIN), shirt = pick(SHIRT), shorts = pick(SHORTS), hair = pick(HAIR);
   const root = new THREE.Group(), body = new THREE.Group();
   root.add(body);
@@ -3586,6 +4040,43 @@ function makePerson({ kid = false, dress = null, hat = null, carry = null } = {}
   scene.add(root);
   return P;
 }
+// The same, as one of the Blender islanders (see 48-humans.js); `look` overrides the outfit colours.
+function humanPerson({ who, kid = false, hat = null, carry = null, look = {} }) {
+  const H = new Human(who, { ...look, hat, scale: kid ? 1 : rr(0.97, 1.03) });
+  const P = { human: H, root: H.root, kid, phase: rand() * 10 };
+  if (carry === 'surf') { H.carrySurf(); P.gait = 'walk_carry'; }
+  if (carry === 'bucket') H.hang('Right', new THREE.Mesh(bucketGeo(), personMat), 0.2);
+  if (carry === 'lantern') { P.lantern = H.hang('Left', lanternGroup(), 0.2).userData.glass; P.gait = 'walk_lantern'; }
+  if (kid) P.gait = 'run';
+  return P;
+}
+// Seated: the hip joint a little above the seat top.
+function seatHuman(P, x, seatY, z, yaw) {
+  const H = P.human;
+  H.play('sit');
+  P.root.position.set(x, seatY + (0.085 * H.kit.ratio - H.kit.sitHip) * H.scale, z);
+  P.root.rotation.y = yaw;
+}
+// Lying back on a lounger: the hip joint at `hip`, the torso tilted onto the backrest, feet towards yaw.
+function reclineHuman(P, hip, yaw, tilt = 0.82) {
+  const H = P.human, pivot = new THREE.Group();
+  pivot.position.copy(hip); pivot.rotation.set(-tilt, yaw, 0, 'YXZ');
+  scene.add(pivot); pivot.add(P.root);
+  P.root.position.set(0, -H.kit.ratio * ASSETS.people.refHipY * H.scale, 0);
+  H.play('lie');
+}
+function poleGeo(kind) {
+  if (kind === 'rod') return merge([
+    part(new THREE.CylinderGeometry(0.005, 0.013, 2.4, 5), '#2b2018', { p: [0, 1.2, 0] }),
+    part(new THREE.CylinderGeometry(0.035, 0.035, 0.03, 10), '#9aa3a8', { p: [0.03, 0.28, 0], r: [0, 0, Math.PI / 2] }),
+    part(new THREE.CylinderGeometry(0.017, 0.017, 0.3, 6), '#3a2a1e', { p: [0, 0.1, 0] }),
+  ]);
+  return merge([
+    part(new THREE.CylinderGeometry(0.014, 0.014, 1.55, 6), '#2c2c2c', { p: [0, 0.78, 0] }),
+    part(new THREE.BoxGeometry(0.11, 0.028, 0.035), '#2c2c2c', { p: [0, 0, 0] }),
+    part(new THREE.BoxGeometry(0.19, 0.42, 0.014), '#f2b84b', { p: [0, 1.72, 0] }),
+  ]);
+}
 function poseWalk(P, phase, amp = 1) {
   const s = Math.sin(phase);
   P.legL.rotation.x = s * 0.55 * amp; P.legR.rotation.x = -s * 0.55 * amp;
@@ -3612,14 +4103,128 @@ function walkY(x, z) {
   return groundHeight(x, z);
 }
 const PEOPLE = [];       // everyone with an update()
+const WALK_LANE = 0.28;  // walkers keep this far right of their path's centre line
+// Where someone on a path with heights `yFn` can actually walk: what they'd stand on is really there (so a deck
+// path stays on the planks), the sea is at most ankle-to-calf deep, and not in the stream (but over the bridge)
+// or the waterfall pool.
+function walkable(yFn, deepest) {
+  return (x, z) => {
+    const y = yFn(x, z);
+    if (y < deepest || Math.abs(groundAt(x, z, y + 0.3).y - y) > 0.12) return false;
+    if (Math.hypot(x - POOL.x, z - POOL.z) < POOL_R + 0.4) return false;
+    if (x > STREAM_BOX.x0 && x < STREAM_BOX.x1 && z > STREAM_BOX.z0 && z < STREAM_BOX.z1 && !(BRIDGE && y > hAt(x, z) + 0.15))
+      for (let i = 0; i < STREAM.length; i += 2) if ((STREAM[i].x - x) ** 2 + (STREAM[i].z - z) ** 2 < (STREAM_W * 0.5 + 0.35) ** 2) return false;
+    return true;
+  };
+}
+// Everything a walking path has to go round, as circles grown by `margin`: colliders that stand on the path's
+// ground (palm trunks, posts, rocks, the campfire), buildings (closed loops of wall segments), sun loungers
+// and the legs of the people sitting on the log benches.
+function walkObstacles(A, margin, yFn) {
+  const obs = [];
+  for (const c of COLL.circles) {
+    if (c.person) continue;
+    const g = yFn(c.x, c.z);
+    if (c.y1 > g + 0.12 && c.y0 < g + 1.5) obs.push({ x: c.x, z: c.z, r: c.r + margin, r0: c.r });
+  }
+  // buildings: group wall segments that share corners, keep the closed ones
+  const segs = COLL.segs.filter((sg) => sg.on), seen = new Set();
+  for (let i = 0; i < segs.length; i++) {
+    if (seen.has(i)) continue;
+    const group = [i]; seen.add(i);
+    for (let q = 0; q < group.length; q++) {
+      const a = segs[group[q]];
+      segs.forEach((b, j) => {
+        if (seen.has(j)) return;
+        const touch = [[a.ax, a.az], [a.bx, a.bz]].some(([x, z]) => Math.hypot(x - b.ax, z - b.az) < 0.08 || Math.hypot(x - b.bx, z - b.bz) < 0.08);
+        if (touch) { seen.add(j); group.push(j); }
+      });
+    }
+    if (group.length < 3) continue;
+    const pts = group.flatMap((j) => [[segs[j].ax, segs[j].az], [segs[j].bx, segs[j].bz]]);
+    const cx = pts.reduce((m, p) => m + p[0], 0) / pts.length, cz = pts.reduce((m, p) => m + p[1], 0) / pts.length;
+    const r = Math.max(...pts.map((p) => Math.hypot(p[0] - cx, p[1] - cz)));
+    const g = yFn(cx, cz), y0 = Math.min(...group.map((j) => segs[j].y0)), y1 = Math.max(...group.map((j) => segs[j].y1));
+    if (r < 3.2 && y1 > g + 0.12 && y0 < g + 1.5) obs.push({ x: cx, z: cz, r: r + margin, r0: r });
+  }
+  for (const u of A.umb) {     // a beach umbrella with its two loungers and table: one place to walk round
+    const mx = (u.loungers[0].x + u.loungers[1].x) / 2, mz = (u.loungers[0].z + u.loungers[1].z) / 2;
+    obs.push({ x: mx + Math.sin(u.rot) * 0.1, z: mz + Math.cos(u.rot) * 0.1, r: 1.6 + margin, r0: 1.6 });
+  }
+  for (const b of A.benches) obs.push({ x: b.x + Math.sin(b.face) * 0.45, z: b.z + Math.cos(b.face) * 0.45, r: 0.32 + margin, r0: 0.32 });
+  if (A.lookoutSeat) obs.push({ x: A.lookoutSeat.x + Math.sin(A.lookoutRot) * 0.45, z: A.lookoutSeat.z + Math.cos(A.lookoutRot) * 0.45, r: 0.32 + margin, r0: 0.32 });
+  return obs;
+}
 const FOLLOWABLE = [];   // things the follow camera can track
 class Walker {
   constructor(P, track, { speed = 0.75, pingpong = true, pause = 0.25, name = '', note = '', s0 = 0 }) {
     Object.assign(this, { P, track, speed, pingpong, pauseChance: pause, name, note });
     this.s = s0 || rand() * track.length; this.dir = 1; this.wait = 0; this.pos = new THREE.Vector3(); this.tan = new THREE.Vector3(); this.yaw = 0; this.nextStop = rr(6, 18);
+    if (P.human) {     // the pace follows the captured gait, so feet don't slide
+      this.gait = P.gait || (speed < 0.6 ? 'walk_slow' : 'walk');
+      this.ts = rr(0.93, 1.06);
+      this.speed = P.human.clipSpeed(this.gait) * this.ts;
+      this.mid = new THREE.Vector3(); this.off = new THREE.Vector2(); this.blocks = 0;
+      this.ground = (x, z) => track.yFn(x, z);
+      this.coll = { x: 0, z: 0, r: 0.2, y0: 0, y1: 0, person: true };    // so the visitor can't walk through them
+      COLL.circles.push(this.coll);
+    }
+  }
+  // Someone right in front (or the visitor): stop for a moment instead of walking into them; if they stay, turn back.
+  blocked() {
+    const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
+    const ahead = (x, z, r) => { const dx = x - this.pos.x, dz = z - this.pos.z, d = Math.hypot(dx, dz); return d < r && dx * fx + dz * fz > d * 0.3; };
+    const hit = PEOPLE.some((o) => o !== this && ahead(o.pos.x, o.pos.z, 0.85)) || (FP.active && ahead(FP.pos.x, FP.pos.z, 1.0));
+    if (!hit) { this.blocks = 0; return false; }
+    if (++this.blocks > 2) { this.blocks = 0; this.dir = -this.dir; return false; }
+    return true;
+  }
+  updateHuman(dt, t) {
+    const P = this.P, H = P.human;
+    if (this.wait <= 0 && this.blocked()) { this.wait = rr(1.0, 2.2); this.rest = 'idle'; }
+    if (this.wait > 0) {
+      this.wait -= dt;
+      if (this.look !== undefined) {            // greeted: turn to the visitor and wave back
+        let d = this.look - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); this.yaw += d * Math.min(1, dt * 4);
+        H.play(this.waveArm ? 'wave' : 'idle', { fade: 0.3 });
+        if (this.wait <= 0) { this.look = undefined; this.waveArm = false; }
+      } else {
+        if (!this.rest) this.rest = P.kid ? pick(['scoop', 'scoop', 'idle']) : P.gait === 'walk_carry' ? 'idle' : pick(['idle', 'idle', 'talk']);
+        H.play(this.rest, { fade: 0.5 });
+      }
+    } else {
+      this.rest = null;
+      this.s += this.speed * this.dir * dt;
+      if (this.pingpong) {
+        if (this.s >= this.track.length) { this.s = this.track.length; this.dir = -1; this.wait = rr(2, 5); }
+        if (this.s <= 0) { this.s = 0; this.dir = 1; this.wait = rr(2, 5); }
+      }
+      this.nextStop -= dt;
+      if (this.nextStop < 0) { this.nextStop = rr(8, 22); if (rand() < this.pauseChance) this.wait = rr(3, 7); }
+      H.play(this.gait, { ts: this.ts, sync: true, fade: 0.35 });
+    }
+    this.track.sample(this.s, this.mid, this.tan);
+    if (this.dir < 0) this.tan.negate();
+    if (this.wait <= 0) {
+      let dy = Math.atan2(this.tan.x, this.tan.z) - this.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+      this.yaw += dy * Math.min(1, dt * 5);
+      // keep to the right of the path, so people going the other way pass beside each other
+      const k = Math.min(1, dt * 1.2), lane = this.track.laneAt(this.s);
+      this.off.x += (-this.tan.z * lane - this.off.x) * k; this.off.y += (this.tan.x * lane - this.off.y) * k;
+      const len = Math.hypot(this.off.x, this.off.y);
+      if (len > lane) this.off.multiplyScalar(lane / len);      // never drift wider than this stretch allows
+    }
+    this.pos.set(this.mid.x + this.off.x, this.mid.y, this.mid.z + this.off.y);
+    P.root.position.copy(this.pos);
+    P.root.rotation.y = this.yaw;
+    H.update(dt, this.ground);
+    this.pos.y = P.root.position.y;
+    Object.assign(this.coll, { x: this.pos.x, z: this.pos.z, y0: this.pos.y - 0.2, y1: this.pos.y + 1.3 });
+    if (P.lantern) P.lantern.visible = U.night.value > 0.35;
   }
   update(dt, t) {
     const P = this.P;
+    if (P.human) return this.updateHuman(dt, t);
     if (this.wait > 0) {
       this.wait -= dt; poseIdle(P, t);
       if (this.look !== undefined && this.wait > 0) { let d = this.look - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); this.yaw += d * Math.min(1, dt * 5); P.root.rotation.y = this.yaw; P.armR.rotation.x = this.waveArm ? -2.6 + Math.sin(t * 9) * 0.3 : P.armR.rotation.x; this.track.sample(this.s, this.pos, this.tan); P.root.position.copy(this.pos); if (this.wait <= 0) { this.look = undefined; this.waveArm = false; } return; }
@@ -3668,43 +4273,61 @@ function buildPeople(A) {
   const boardPts = [startOut, start];
   for (let k = 1; k <= 10; k++) boardPts.push(bw.getPointAt(k / 10));
   boardPts.push(b3.door);
-  const boardTrack = new Track(boardPts.map((p) => [p.x, p.z]), false, (x, z) => (Math.hypot(x - startOut.x, z - startOut.z) < 0.3 ? walkY(x, z) : DECK_Y));
+  const onDeck = (x, z) => groundAt(x, z, DECK_Y + 0.3).y;     // the planks where there are planks, the sand before them
+  const boardTrack = new Track(boardPts.map((p) => [p.x, p.z]), false, onDeck);
   const b1Pts = [start]; for (let k = 1; k <= 5; k++) b1Pts.push(bw.getPointAt(0.46 * k / 5)); b1Pts.push(b1.p.clone().addScaledVector(b1.sd, 1.4), b1.door);
-  const b1Track = new Track(b1Pts.map((p) => [p.x, p.z]), false, () => DECK_Y);
+  const b1Track = new Track(b1Pts.map((p) => [p.x, p.z]), false, onDeck);
   // dock: bar → jetty end
-  const dk = A.dock, bar = A.bar;
-  const dockPts = [[bar.x + Math.sin(bar.rot) * 2.6, bar.z + Math.cos(bar.rot) * 2.6], [dk.P(-2.6, 0).x, dk.P(-2.6, 0).z]];
-  for (let k = 0; k <= 6; k++) { const p = dk.P(-1.8 + k * 2.15, 0); dockPts.push([p.x, p.z]); }
-  const dockTrack = new Track(dockPts, false, (x, z) => { const along = (x - SITE.dock.x) * dk.n.x + (z - SITE.dock.z) * dk.n.z; return along > -2.0 ? DECK_Y : walkY(x, z); });
+  const dk = A.dock;
+  const dockPts = [];      // the dock has no steps down to the sand, so its walker stays on the planks
+  for (let k = 0; k <= 6; k++) { const p = dk.P(-1.6 + k * 2.12, 0); dockPts.push([p.x, p.z]); }
+  const dockTrack = new Track(dockPts, false, onDeck);
+  // no path leads through a palm, a post, a hut, a lounger or the campfire (a body's width plus the walking lane)
+  for (const tr of [southTrack, northTrack, shoreTrack, hikeTrack, hutTrack, boardTrack, b1Track, dockTrack]) tr.avoid(walkObstacles(A, 0.24 + WALK_LANE, tr.yFn), walkable(tr.yFn, tr === shoreTrack ? -0.35 : -0.22));
 
   const walkers = [
-    [{ hat: 'straw' }, southTrack, { name: 'Koa', note: '沿着沙滩散步', speed: 0.7 }],
-    [{ dress: '#f78fb3' }, southTrack, { name: 'Leilani', note: '去海边看日落', speed: 0.62 }],
-    [{ hat: 'cap', carry: 'surf' }, southTrack, { name: 'Kai', note: '扛着冲浪板找浪', speed: 0.85 }],
-    [{ dress: '#ffd166', carry: 'lantern' }, boardTrack, { name: 'Malia', note: '回水上小屋', speed: 0.6 }],
-    [{ carry: 'lantern' }, b1Track, { name: '阿青', note: '在栈桥上闲逛', speed: 0.55 }],
-    [{ hat: 'straw' }, dockTrack, { name: '老林', note: '去码头看看船', speed: 0.6 }],
-    [{ carry: 'lantern' }, hikeTrack, { name: 'Noa', note: '去瀑布边吹风', speed: 0.55 }],
-    [{ dress: '#8ecae6' }, hutTrack, { name: 'Mele', note: '回椰林里的小屋', speed: 0.5 }],
-    [{ hat: 'cap' }, northTrack, { name: '小周', note: '在北边沙滩捡贝壳', speed: 0.6, pause: 0.6 }],
-    [{ dress: '#e76f51' }, northTrack, { name: 'Lani', note: '晨跑后慢慢走', speed: 0.7 }],
-    [{ kid: true, carry: 'bucket' }, shoreTrack, { name: '小满', note: '在浪花边追螃蟹', speed: 1.25, pause: 0.5 }],
-    [{ kid: true }, shoreTrack, { name: '豆豆', note: '和小满一起玩水', speed: 1.35, pause: 0.5 }],
+    [{ who: 'koa', hat: 'straw' }, southTrack, { name: 'Koa', note: '沿着沙滩散步', speed: 0.7 }],
+    [{ who: 'leilani', dress: '#f78fb3' }, southTrack, { name: 'Leilani', note: '去海边看日落', speed: 0.62 }],
+    [{ who: 'kai', hat: 'cap', carry: 'surf' }, southTrack, { name: 'Kai', note: '扛着冲浪板找浪', speed: 0.85 }],
+    [{ who: 'ama', dress: '#ffd166', carry: 'lantern' }, boardTrack, { name: 'Malia', note: '回水上小屋', speed: 0.6 }],
+    [{ who: 'chen', carry: 'lantern' }, b1Track, { name: '阿青', note: '在栈桥上闲逛', speed: 0.55 }],
+    [{ who: 'koa', hat: 'cap', look: { a: '#3f6d8e', b: '#e6dcc6', p: '#f6f1e3' } }, dockTrack, { name: '老林', note: '去码头看看船', speed: 0.6 }],
+    [{ who: 'noa', carry: 'lantern' }, hikeTrack, { name: 'Noa', note: '去瀑布边吹风', speed: 0.55 }],
+    [{ who: 'mele', dress: '#8ecae6' }, hutTrack, { name: 'Mele', note: '回椰林里的小屋', speed: 0.5 }],
+    [{ who: 'kai', hat: 'cap', look: { a: '#d9663f', b: '#d9663f', p: '#2d3e50' } }, northTrack, { name: '小周', note: '在北边沙滩捡贝壳', speed: 0.6, pause: 0.6 }],
+    [{ who: 'lani', dress: '#e76f51' }, northTrack, { name: 'Lani', note: '晨跑后慢慢走', speed: 0.7 }],
+    [{ who: 'boy', kid: true, carry: 'bucket' }, shoreTrack, { name: '小满', note: '在浪花边追螃蟹', speed: 1.25, pause: 0.5 }],
+    [{ who: 'girl', kid: true }, shoreTrack, { name: '豆豆', note: '和小满一起玩水', speed: 1.35, pause: 0.5 }],
   ];
   for (const [look, track, opts] of walkers) {
-    const P = makePerson({ kid: !!look.kid, dress: look.dress || null, hat: look.hat || null, carry: look.carry || null });
+    const P = makePerson(look);
     const w = new Walker(P, track, opts);
     PEOPLE.push(w); FOLLOWABLE.push({ kind: 'person', name: opts.name, note: opts.note, get pos() { return w.pos; }, get yaw() { return w.yaw; }, h: 1.0 });
   }
   // --- people staying put ---
   const still = [];
   A.benches.forEach((b, k) => {
-    const P = makePerson({ dress: k === 1 ? '#9b5de5' : null, hat: k === 2 ? 'straw' : null });
+    const P = makePerson({ who: ['noa', 'mele', 'leilani'][k % 3], dress: k === 1 ? '#9b5de5' : null, hat: k === 2 ? 'straw' : null,
+      look: [{ a: '#a8443a', b: '#3b3f46' }, { a: '#9b6bb5', b: '#e8e0d0' }, {}][k % 3] });
+    if (P.human) {
+      seatHuman(P, b.x, b.y, b.z, b.face); still.push({ P, kind: 'human', ground: STAND_ON, seated: true });
+      cCircle(b.x + Math.sin(b.face) * 0.45, b.z + Math.cos(b.face) * 0.45, 0.3, b.y - 0.6, b.y + 0.5);   // their legs
+      return;
+    }
     P.root.position.set(b.x, b.y - 0.62, b.z); P.root.rotation.y = b.face; poseSit(P, -1.4, -0.5);
     still.push({ P, kind: 'sit', k });
   });
   // fisherman on the dock end
-  { const q = A.dock.P(12.55, -1.2), P = makePerson({ hat: 'straw' });
+  { const q = A.dock.P(12.55, -1.2), P = makePerson({ who: 'chen', hat: 'straw', look: { a: '#6f8f7a', b: '#4a4f57' } });
+    if (P.human) {
+      P.root.position.set(q.x, DECK_Y, q.z); P.root.rotation.y = Math.atan2(A.dock.n.x, A.dock.n.z); P.human.play('fish');
+      const rod = P.human.pole(new THREE.Mesh(poleGeo('rod'), personMat), { len: 2.4 });
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: '#f5f5f5', transparent: true, opacity: 0.6 }));
+      line.frustumCulled = false; scene.add(line);
+      still.push({ P, kind: 'human', rod, line, ground: STAND_ON });
+      cCircle(q.x, q.z, 0.22, DECK_Y - 0.1, DECK_Y + 1.4);
+      FOLLOWABLE.push({ kind: 'person', name: '老陈', note: '在码头尽头钓鱼', pos: P.root.position.clone().add(new THREE.Vector3(0, 0.4, 0)), yaw: P.root.rotation.y, h: 0.8 });
+    } else {
     P.root.position.set(q.x, DECK_Y - 0.62, q.z); P.root.rotation.y = Math.atan2(A.dock.n.x, A.dock.n.z); poseSit(P, -0.25, -1.0);
     const rod = new THREE.Mesh(paint(xf(new THREE.CylinderGeometry(0.012, 0.02, 2.6, 4), { p: [0, 1.25, 0] }), '#3d2b1f'), personMat);
     rod.position.set(0.12, -0.5, 0.05); rod.rotation.x = 0.9; P.armR.add(rod);
@@ -3713,40 +4336,80 @@ function buildPeople(A) {
     const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: '#f5f5f5', transparent: true, opacity: 0.6 }));
     scene.add(line); still[still.length - 1].line = line; still[still.length - 1].rod = rod;
     FOLLOWABLE.push({ kind: 'person', name: '老陈', note: '在码头尽头钓鱼', pos: P.root.position.clone().add(new THREE.Vector3(0, 0.6, 0)), yaw: P.root.rotation.y, h: 0.6 });
+    }
   }
   // sunbathers on two loungers
   A.umb.forEach((u, k) => {
     if (k % 2) return;
-    const l = u.loungers[1], P = makePerson({ dress: k ? '#06d6a0' : null, hat: k ? 'straw' : null });
+    const l = u.loungers[1], P = makePerson({ who: k ? 'kai' : 'lani', dress: k ? '#06d6a0' : null, hat: k ? 'straw' : null, look: k ? { a: '#2a9d8f', b: '#2a9d8f', p: '#f4f1de' } : { a: '#f7c8d0', b: '#f7c8d0' } });
+    if (P.human) { reclineHuman(P, new THREE.Vector3(l.x - Math.sin(u.rot) * 0.5, l.y + 0.07, l.z - Math.cos(u.rot) * 0.5), u.rot); still.push({ P, kind: 'human' }); return; }
     P.root.position.set(l.x, l.y + 0.1, l.z); P.root.rotation.set(-Math.PI / 2 + 0.25, u.rot + Math.PI, 0, 'YXZ');
     poseSit(P, 0, -0.1); P.root.position.y += 0.02;
   });
   // someone on a bungalow porch, one on the lookout bench
-  { const b = A.bungalows[1], seat = new THREE.Vector3(1.0, 0.0, 1.95).applyMatrix4(frameAt(b.house.x, DECK_Y, b.house.z, b.rot)); const P = makePerson({ dress: '#ffffff' }); P.root.position.set(seat.x, seat.y + 0.32 - 0.66 + 0.4, seat.z); P.root.rotation.set(-1.0, b.rot, 0, 'YXZ'); poseSit(P, -0.6, -0.3); }
-  { const P = makePerson({}); P.root.position.copy(A.lookoutSeat).add(new THREE.Vector3(0, -0.66, 0)); P.root.rotation.y = A.lookoutRot; poseSit(P, -1.45, -0.4); still.push({ P, kind: 'sit', k: 9 }); }
-  // swimmers bobbing in the lagoon
-  const swimmers = [];
-  [coastPoint(94, -2.6), coastPoint(99, -3.4)].forEach((c, k) => {
-    const P = makePerson({ hat: k ? null : 'cap' });
-    swimmers.push({ P, c, ph: rand() * 10 });
-  });
+  { const b = A.bungalows[1], M = frameAt(b.house.x, DECK_Y, b.house.z, b.rot), seat = new THREE.Vector3(1.0, 0.0, 1.95).applyMatrix4(M); const P = makePerson({ who: 'ama', dress: '#ffffff', look: { a: '#f2efe8', b: '#f2efe8' } });
+    if (P.human) { reclineHuman(P, new THREE.Vector3(1.0, 0.465, 1.55).applyMatrix4(M), b.rot); still.push({ P, kind: 'human' }); }
+    else { P.root.position.set(seat.x, seat.y + 0.32 - 0.66 + 0.4, seat.z); P.root.rotation.set(-1.0, b.rot, 0, 'YXZ'); poseSit(P, -0.6, -0.3); } }
+  { const P = makePerson({ who: 'koa', hat: 'straw', look: { a: '#e9e4d6', b: '#5b5348', p: '#9cb7c9' } });
+    if (P.human) {
+      seatHuman(P, A.lookoutSeat.x, A.lookoutSeat.y - 0.02, A.lookoutSeat.z, A.lookoutRot); still.push({ P, kind: 'human', ground: STAND_ON, seated: true });
+      cCircle(A.lookoutSeat.x + Math.sin(A.lookoutRot) * 0.45, A.lookoutSeat.z + Math.cos(A.lookoutRot) * 0.45, 0.3, A.lookoutSeat.y - 0.6, A.lookoutSeat.y + 0.5);
+    }
+    else { P.root.position.copy(A.lookoutSeat).add(new THREE.Vector3(0, -0.66, 0)); P.root.rotation.y = A.lookoutRot; poseSit(P, -1.45, -0.4); still.push({ P, kind: 'sit', k: 9 }); } }
   // paddle-boarder gliding along the south lagoon
   const sup = []; for (let deg = 60; deg <= 118; deg += 4) { const c = coastPoint(deg, -4.8); sup.push([c.x, c.z]); }
   const supTrack = new Track(sup, false);
-  const supP = makePerson({ hat: 'straw' });
+  // swimmers treading water where it is deep enough for their legs, clear of the board's and the boats' routes
+  const swimmers = [], busy = [...sup, ...BOATS.filter((b) => b.track).flatMap((b) => b.track.p.filter((_, i) => i % 4 === 0).map((p) => [p.x, p.z]))];
+  swimSpots(busy, 1.5).forEach((c, k) => {
+    const P = makePerson({ who: k ? 'lani' : 'noa', hat: k ? null : 'cap', look: k ? { a: '#1d3557', b: '#1d3557' } : {} });
+    if (P.human) P.human.play('tread');
+    const coll = { x: c.x, z: c.z, r: 0.3, y0: -3, y1: 1, person: true }; COLL.circles.push(coll);
+    swimmers.push({ P, c, ph: rand() * 10, coll });
+  });
+  const supP = makePerson({ who: 'noa', hat: 'straw', look: { a: '#f4f1ea', b: '#2b4c6f' } });
   const board = new THREE.Mesh(paint(xf(new THREE.CapsuleGeometry(0.28, 2.2, 4, 12), { r: [Math.PI / 2, 0, 0], s: [1, 0.2, 1] }), '#ffd166'), boatMat);
   board.castShadow = true; scene.add(board);
-  const paddle = new THREE.Mesh(paint(xf(new THREE.CylinderGeometry(0.018, 0.018, 1.9, 4), { p: [0, -0.5, 0] }), '#3d2b1f'), personMat);
-  supP.armR.add(paddle); paddle.position.set(0, -0.3, 0.1);
+  if (supP.human) { supP.human.play('paddle'); supP.human.pole(new THREE.Mesh(poleGeo('paddle'), personMat), { len: 1.9, down: true }); }
+  else { const paddle = new THREE.Mesh(paint(xf(new THREE.CylinderGeometry(0.018, 0.018, 1.9, 4), { p: [0, -0.5, 0] }), '#3d2b1f'), personMat);
+    supP.armR.add(paddle); paddle.position.set(0, -0.3, 0.1); }
   const supper = { P: supP, board, track: supTrack, s: 0, dir: 1, pos: new THREE.Vector3(), tan: new THREE.Vector3(), yaw: 0 };
   FOLLOWABLE.push({ kind: 'person', name: 'Nalu', note: '站着划桨板', get pos() { return supper.pos; }, get yaw() { return supper.yaw; }, h: 1.2 });
   for (const b of BOATS) if (b.name) FOLLOWABLE.push({ kind: 'boat', name: b.name, note: b.note, get pos() { return b.g.position; }, get yaw() { return b.g.rotation.y - Math.PI / 2; }, h: 1.5 });
 
   return { still, swimmers, supper };
 }
+// what people stand on: the ground, a deck or the bridge
+const STAND_ON = (x, z, y) => groundAt(x, z, y + 0.25).y;
+// Places in the lagoon at least `need` deep all round a small circle, away from the given routes, stilts and moorings.
+function swimSpots(busy, need) {
+  const out = [];
+  for (const deg of [124, 131, 86, 100, 140, 112, 76]) {
+    for (let ins = -6; ins > -13; ins -= 0.5) {
+      const c = coastPoint(deg, ins);
+      let ok = true;
+      for (let k = 0; k < 12 && ok; k++) { const a = k / 12 * TAU; if (hAt(c.x + Math.cos(a) * 1.6, c.z + Math.sin(a) * 1.6) > -need) ok = false; }
+      if (!ok || busy.some((p) => Math.hypot(p[0] - c.x, p[1] - c.z) < 4.5)) continue;
+      if (COLL.circles.some((q) => !q.person && Math.hypot(q.x - c.x, q.z - c.z) < q.r + 2.4)) continue;
+      if (BOATS.some((b) => b.type === 'moored' && Math.hypot(b.x - c.x, b.z - c.z) < 5)) continue;
+      if (out.some((o) => Math.hypot(o.x - c.x, o.z - c.z) < 5)) continue;
+      out.push(c); break;
+    }
+    if (out.length === 2) break;
+  }
+  return out;
+}
 function updatePeople(dt, t, extra) {
   for (const w of PEOPLE) w.update(dt, t);
   for (const s of extra.still) {
+    if (s.kind === 'human') {
+      s.P.human.update(dt, s.ground, s.seated);
+      if (s.rod) {
+        const tip = s.rod.userData.tip, fw = s.P.human.forward(_bt), pos = s.line.geometry.attributes.position;
+        pos.setXYZ(0, tip.x, tip.y, tip.z); pos.setXYZ(1, tip.x + fw.x * 0.6, waveH(tip.x + fw.x * 0.6, tip.z + fw.z * 0.6, t), tip.z + fw.z * 0.6); pos.needsUpdate = true;
+      }
+      continue;
+    }
     if (s.kind === 'sit') { s.P.armL.rotation.x = -0.5 + Math.sin(t * 0.7 + s.P.phase) * 0.12; s.P.body.rotation.z = Math.sin(t * 0.4 + s.P.phase) * 0.03; }
     if (s.kind === 'fish') {
       s.P.armR.rotation.x = -1.0 + Math.sin(t * 0.5) * 0.06;
@@ -3758,9 +4421,12 @@ function updatePeople(dt, t, extra) {
   }
   for (const s of extra.swimmers) {
     const a = t * 0.12 + s.ph, x = s.c.x + Math.cos(a) * 1.2, z = s.c.z + Math.sin(a) * 1.2;
-    s.P.root.position.set(x, waveH(x, z, t) - 1.02 + Math.sin(t * 2 + s.ph) * 0.03, z);
+    const H = s.P.human;
+    s.P.root.position.set(x, waveH(x, z, t) - (H ? 0.71 * H.kit.height * H.scale : 1.02) + Math.sin(t * 2 + s.ph) * 0.03, z);
+    if (s.coll) { s.coll.x = x; s.coll.z = z; }
     s.P.root.rotation.y = a + Math.PI;
-    s.P.armL.rotation.x = Math.sin(t * 2.2 + s.ph) * 1.4 - 1.2; s.P.armR.rotation.x = Math.sin(t * 2.2 + s.ph + Math.PI) * 1.4 - 1.2;
+    if (H) H.update(dt);
+    else { s.P.armL.rotation.x = Math.sin(t * 2.2 + s.ph) * 1.4 - 1.2; s.P.armR.rotation.x = Math.sin(t * 2.2 + s.ph + Math.PI) * 1.4 - 1.2; }
     if (Math.random() < dt * 3) emitWake(x + rr(-0.3, 0.3), z + rr(-0.3, 0.3), 0, 0, 0.5, 1.4);
   }
   const s = extra.supper;
@@ -3773,9 +4439,12 @@ function updatePeople(dt, t, extra) {
   const yaw = Math.atan2(s.tan.x, s.tan.z); let dy = yaw - s.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); s.yaw += dy * Math.min(1, dt * 2);
   s.board.position.copy(s.pos); s.board.rotation.set(Math.sin(t * 1.2) * 0.03, s.yaw, Math.sin(t * 0.9) * 0.03);
   s.P.root.position.set(s.pos.x, s.pos.y + 0.06, s.pos.z); s.P.root.rotation.y = s.yaw;
-  poseIdle(s.P, t);
-  const st = Math.sin(t * 1.6);
-  s.P.armR.rotation.x = -0.6 + st * 0.6; s.P.armL.rotation.x = -0.9 + st * 0.5; s.P.body.rotation.x = 0.1 + st * 0.06;
+  if (s.P.human) s.P.human.update(dt, () => s.board.position.y + 0.056);    // feet on the board's deck
+  else {
+    poseIdle(s.P, t);
+    const st = Math.sin(t * 1.6);
+    s.P.armR.rotation.x = -0.6 + st * 0.6; s.P.armL.rotation.x = -0.9 + st * 0.5; s.P.body.rotation.x = 0.1 + st * 0.06;
+  }
   if (Math.random() < dt * 4) emitWake(s.pos.x - s.tan.x * 1.1, s.pos.z - s.tan.z * 1.1, -s.tan.x * 0.1, -s.tan.z * 0.1, 0.55, 1.6);
 }
 
@@ -6850,8 +7519,12 @@ async function init() {
     ['打磨胡桃木底座…', () => { buildBase(); buildSkyAndLights(); }],
     ['搭建高脚屋和码头…', () => { A = buildStructures(); }],
     ['种下椰子树…', () => { buildPalms(); buildVegetation(); }],
-    ['请岛民们出门散步…', () => { buildBoats(A); EXTRA = buildPeople(A); buildGulls(); fireflies = buildFireflies(); buildRain(); buildWake(); }],
     ['海里的居民也游过来了…', () => { buildMarine(); buildOcean(A); }],
+    ['请岛民们出门散步…', () => {      // after the ocean's props, so the islanders' paths go round them too
+      buildBoats(A); EXTRA = buildPeople(A); buildGulls(); fireflies = buildFireflies(); buildRain(); buildWake();
+      const rank = (f) => (f.kind === 'person' ? 0 : f.kind === 'boat' ? 1 : 2);
+      FOLLOWABLE.sort((a, b) => rank(a) - rank(b));     // the follow camera still starts with people, then boats, then sea life
+    }],
     ['调好今天的光线…', () => {
       controls = new OrbitControls(camera, canvas);
       Object.assign(controls, { enableDamping: true, dampingFactor: 0.06, minDistance: 12, maxDistance: 300, maxPolarAngle: 1.36, minPolarAngle: 0.1, rotateSpeed: 0.55, zoomSpeed: 0.8, panSpeed: 0.6, autoRotateSpeed: 0.3 });
@@ -6892,7 +7565,7 @@ init().catch((err) => {
 });
 
 // handy for tinkering from the browser console
-window.__island = { ASSETS, MARINE, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph, FP, COLL, OCEAN, OLOG, toggleLog, closeLetter, groundAt, fpInteract, nearestInteraction, enterFP, exitFP, BOATS, PEOPLE, takeBoat, boardRide, useSpot, coastPoint, hAt, waterAt, updateFP, updateBoats, U, updateCamera, nextFollow, get camMode() { return camMode; }, greet, leaveRide, standUp, ARMS, PAD, pollGamepad, get camModeNow() { return camMode; } };
+window.__island = { get EXTRA() { return EXTRA; }, get A() { return A; }, walkObstacles, walkable, ASSETS, MARINE, PALMS, get huts() { return A && A.huts; }, state, stopTween() { camTween = null; }, finishTween() { if (camTween) camTween.t = 0.999; }, setCamMode, flyTo, camera, renderer, scene, get composer() { return composer; }, get passes() { return { bloomPass, tiltPass, gradePass }; }, get controls() { return controls; }, FOLLOWABLE, homeView, setQuality, sph, FP, COLL, OCEAN, OLOG, toggleLog, closeLetter, groundAt, fpInteract, nearestInteraction, enterFP, exitFP, BOATS, PEOPLE, takeBoat, boardRide, useSpot, coastPoint, hAt, waterAt, updateFP, updateBoats, U, updateCamera, nextFollow, get camMode() { return camMode; }, greet, leaveRide, standUp, ARMS, PAD, pollGamepad, get camModeNow() { return camMode; } };
 
 </script>
 </body>

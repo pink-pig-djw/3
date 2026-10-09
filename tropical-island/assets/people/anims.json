@@ -1,0 +1,84 @@
+{
+ "clips": {
+  "idle": {
+   "frames": 208,
+   "speed": 0.0,
+   "loop": true
+  },
+  "walk": {
+   "frames": 114,
+   "speed": 0.896,
+   "loop": true
+  },
+  "walk_slow": {
+   "frames": 185,
+   "speed": 0.51,
+   "loop": true
+  },
+  "run": {
+   "frames": 24,
+   "speed": 2.518,
+   "loop": true
+  },
+  "talk": {
+   "frames": 354,
+   "speed": 0.0,
+   "loop": true
+  },
+  "sit": {
+   "frames": 66,
+   "speed": 0.0,
+   "loop": true
+  },
+  "lie": {
+   "frames": 196,
+   "speed": 0.0,
+   "loop": true
+  },
+  "tread": {
+   "frames": 151,
+   "speed": 0.0,
+   "loop": true
+  },
+  "fish": {
+   "frames": 140,
+   "speed": 0.0,
+   "loop": true
+  },
+  "drink": {
+   "frames": 186,
+   "speed": 0.0,
+   "loop": true
+  },
+  "paddle": {
+   "frames": 128,
+   "speed": 0.0,
+   "loop": true
+  },
+  "scoop": {
+   "frames": 83,
+   "speed": 0.0,
+   "loop": true
+  },
+  "wave": {
+   "frames": 83,
+   "speed": 0.0,
+   "loop": true
+  },
+  "walk_carry": {
+   "frames": 114,
+   "speed": 0.896,
+   "loop": true
+  },
+  "walk_lantern": {
+   "frames": 185,
+   "speed": 0.51,
+   "loop": true
+  }
+ },
+ "hips": [
+  0.0012764986604452133,
+  -0.016889749094843864,
+  0.913705587387085
+ ]
+}

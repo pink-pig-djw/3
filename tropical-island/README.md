@@ -21,7 +21,7 @@ npx serve .            # 或者 python3 -m http.server 8000
 - 四种灌木（亮叶、浅绿大叶、变叶木、开花的扶桑）、红色朱蕉、开花的鸡蛋花树、成丛的草和蕨类；同种植物会成片生长，颜色艳丽的品种集中在小屋周围的院子里
 - 栈桥连着的三座水上高脚屋、东边的码头和“椰子小铺”、四座椰林小屋、小岛上的灯塔
 - 系在码头的小划船、绕岛航行的两艘帆船、出海兜圈的渔船（都有尾浪）
-- 二十多个小人：沙滩散步、扛冲浪板、追浪花的小孩、栈桥上提灯的人、篝火边坐着的人、码头钓鱼、游泳、划桨板
+- 二十多位岛民（写实人体，见下文“岛民”）：沙滩散步、扛冲浪板、追浪花的小孩、栈桥上提灯的人、篝火边坐着的人、码头钓鱼、躺椅上晒太阳、游泳、划桨板
 - 海鸥、夜里的萤火虫、篝火火星，天上随风飘移的积云，以及云影掠过海岛
 
 ### 海洋生物
@@ -69,6 +69,18 @@ npx serve .            # 或者 python3 -m http.server 8000
 - **珊瑚**：Blender 建模的鹿角珊瑚、桌形珊瑚、海扇、指状珊瑚、脑珊瑚和滨珊瑚丘，带珊瑚虫纹理和脑纹贴图；枝状珊瑚长在向阳的礁顶，块状珊瑚在礁丘之间
 - **建筑、船、人物**：木板和茅草换成 Blender 烘焙的 PBR 贴图（木纹、年轮、裂纹、风化；茅草分层叠压），油漆褪色，表面有污渍和被晒白的斑块，粗糙度不均匀
 - **天空和阴影**：天上是一层随风飘移的积云，按太阳方向打光，朝太阳一侧有亮边，黄昏被染成橙粉色，夜里遮住星星，下雨时变成阴云；同一张噪声图把云影投在海岛和海面上。第一人称时太阳阴影只覆盖玩家周围、跟着玩家移动，清晰度是全景时的两倍
+
+## 岛民
+
+岛上的人是 10 个用 Blender 生成的写实角色（不同年龄、性别和族裔，包括两个孩子），每人一套蒙皮网格和贴图，动作来自真人动作捕捉：
+
+- **身体**：MakeHuman 的 Blender 插件 MPFB2 按年龄、体型、族裔混合等参数生成，加上脸型微调；皮肤用 Cycles 烘焙成颜色、法线、AO 和粗糙度贴图，再画上眉毛、睫毛线和胡茬。
+- **衣服**：从 MakeHuman 的贴身辅助网格裁出 T 恤、衬衫、背心、短裤、冲浪裤、半身裙、连衣裙、比基尼和连体泳衣，放松、加褶皱法线并烘焙阴影；页面按人重新配色，所以同一个角色出现两次时穿的衣服不同。
+- **头发**：贴着头皮的发帽加上几千张发片（短发、寸头、波波头、长发、马尾、发髻），透明测试渲染，也投射阴影。
+- **动作**：CMU 动作捕捉库里的走路、慢走、跑、站着、聊天、坐、踩水、钓鱼、划桨、蹲下挖沙，重定向到 Mixamo 兼容的 52 根骨骼上；挥手、把冲浪板顶在头上、提灯和躺椅上枕着手的姿势在动捕基础上手调手臂和腿。走路的速度跟随动作本身的步幅，脚不会打滑；第一人称里和人打招呼，他会转过来挥手。
+- **脚踏实地，不穿模**：动捕是在平地上录的，岛上却有沙坡、木栈道、码头和拱桥。页面每一帧按每只脚下真实的地面高度调整身体，用双骨骼 IK 弯腿让着地的脚刚好贴地、脚掌顺着坡度倾斜，抬起的脚不会陷进坡里；坐在长凳和观景椅上的人双脚放到地面上，桨板上的人站在板面上，游泳的人头露出水面、脚不碰海底。
+- **走路会绕开东西**：每条散步路线在 20 厘米的网格上用 A* 重新规划，绕开树干、灯柱、小屋、遮阳伞和躺椅、篝火、坐着的人的腿，也不会走进深水、溪流（桥上除外）或从木栈道边缘踩空；走路靠右，迎面的人错身而过，前面有人（包括第一人称的你）会停下让一让，挡久了就掉头。你也穿不过他们。
+- 页面里每个角色的多个实例共用网格和贴图，远处的人降低动作更新频率。贴图在手机上缩到一半。打不开 `assets/` 时会退回到原来的简笔小人。
 
 ## 第一人称漫游
 
@@ -174,6 +186,8 @@ npx serve .            # 或者 python3 -m http.server 8000
 | `plants.py` | `assets/models/plants.glb` | 灌木、朱蕉、鸡蛋花、草丛、蕨类 |
 | `corals.py` | `assets/models/corals.glb` | 6 种珊瑚 |
 | `stats.py` | `assets/tex/stats.json` | 每张颜色贴图的平均色，页面用“贴图 ÷ 平均色 × 场景原有颜色”的方式叠加细节 |
+| `people.py` | `assets/people/<id>.glb`、`assets/people/tex/<id>_*.webp`、`hair_c.webp` | 10 位岛民：MPFB2 生成身体并绑定骨架，裁衣服、种头发、减面，Cycles 烘焙皮肤、眼睛和衣服贴图；每人约 2 万三角形 |
+| `anims.py` | `assets/people/anims.glb`、`anims.json` | 把 CMU 动作捕捉（BVH）重定向到岛民的骨架，裁成循环片段、去掉位移（记录步速），每秒 30 帧 |
 | `preview.py` | 预览图 | 用 Cycles 把模型排成一排渲染出来检查 |
 
 例如在 `blender/` 目录下：
@@ -187,6 +201,15 @@ python palms.py ../assets/models           # 依赖 foliage.json
 python plants.py ../assets/models
 python corals.py ../assets/models
 python stats.py ../assets/tex
+MPFB_SRC=…/mpfb2/src/mpfb MAKEHUMAN_DATA=…/makehuman/makehuman/data python people.py ../assets/people   # 也可以只做几个人：… people.py ../assets/people kai lani
+CMU_BVH=…/cmu-mocap/data python anims.py ../assets/people
 ```
 
 `*_c` 是 sRGB 颜色，`*_n` 是 OpenGL 约定（+Y 向上）的切线空间法线，`*_r` 的 R/G/B 分别是 AO、粗糙度和高度。模型是 glTF 二进制（Y 轴向上），顶点色里是“底色 × 烘焙 AO”，自定义属性 `_SWAY` / `_FLUTTER` 控制风吹时各点摆动和叶片抖动的幅度。
+
+`assets/people/tex/` 里：`<id>_skin_c/n/r` 是皮肤（`r` 的 R/G 为 AO 和粗糙度），`<id>_eyes_c` 是眼睛，`<id>_cloth_c` 的 R/G/B 是衣服的明暗、印花遮罩和“第几件衣服”（页面据此给上衣和下装分别上色），`<id>_cloth_n` 是布纹法线，`hair_c` 是所有人共用的发丝贴图集（带透明通道，页面按人染色）。
+
+### 岛民用到的第三方素材
+
+- **MPFB2 / MakeHuman**（[github.com/makehumancommunity/mpfb2](https://github.com/makehumancommunity/mpfb2)）：插件代码是 GPLv3，只在 Blender 里运行，没有放进本项目；基础网格、形变目标、骨架、眼睛等素材以 CC0 发布，MakeHuman 团队在许可说明里声明对用 MPFB 生成的输出不主张任何权利，所以 `assets/people/` 可以随意使用。
+- **CMU Graphics Lab Motion Capture Database**（[mocap.cs.cmu.edu](http://mocap.cs.cmu.edu)），使用 Bruce Hahne 转换的 BVH 版本（[una-dinosauria/cmu-mocap](https://github.com/una-dinosauria/cmu-mocap) 镜像）。按数据库的要求注明：The data used in this project was obtained from mocap.cs.cmu.edu. The database was created with funding from NSF EIA-0196217.
