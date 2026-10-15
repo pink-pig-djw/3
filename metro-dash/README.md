@@ -17,6 +17,20 @@ The game is a single self-contained HTML file (code, models, animations, and sty
 | Hoverboard (30 s) | Double-tap / button at bottom right | Space |
 | Pause | Button at top left | Esc / P |
 
+## Five zones
+
+The farther you run, the more zones you unlock, and each later zone is flashier. Every boundary has a gate showing the zone name; crossing it triggers the zone title banner and a screen flash, and the sky, lighting, fog, and music shift gradually.
+
+| Zone | Distance | Scene | Music |
+| --- | --- | --- | --- |
+| Zone 1 晴空街区 | 0 m | Bright city, graffiti walls, tunnels, stations | 98 BPM street beat |
+| Zone 2 夕阳海港 | 550 m | Giant setting sun, sea, gantry cranes, container stacks, palm trees, truss bridge | 92 BPM chill + pad |
+| Zone 3 霓虹夜城 | 1300 m | Starry night, neon signs, glowing graffiti, lit train windows, neon-ring arcade, light rain | 108 BPM + arpeggio |
+| Zone 4 赛博网格 | 2150 m | Synthwave striped sun, glowing grid floor, wireframe towers, holographic rings, sweeping lasers, maglev trains | 118 BPM synthwave |
+| Zone 5 星河轨道 | 3100 m | Floating space bridge, nebula, aurora, ringed planet, asteroids, crystals, warp tunnel | 124 BPM four-on-the-floor |
+
+After 4100 m the zones cycle through 霓虹 → 赛博 → 星河. FOV also widens as speed rises.
+
 ## Gameplay
 
 - Hitting a train or barrier head-on ends the run. Scraping the side of a train while switching lanes makes you stumble and brings the guard after you; stumble again within 6 seconds and you're caught.
@@ -35,7 +49,10 @@ metro-dash/
   src/                     source code
     main.js                state machine, physics/collision, scoring, camera
     level.js               level pattern generator, coins, power-ups
-    world.js               scenery chunks (tracks / graffiti walls / buildings / tunnels / stations)
+    world.js               scenery chunks and zone gates for all five zones
+    themes.js              zone data (sky / light / fog / particles) and distance → zone mapping
+    sky.js                 procedural sky shader (sun, stars, nebula, aurora, planet)
+    scenetex.js            textures for the later zones (neon signs, grid, maglev trains, etc.)
     props.js               meshes for trains, ramps, barriers, coins, power-ups
     characters.js          VRM loading, animation playback, expressions, props
     textures.js            canvas-drawn textures (trains, graffiti, track, etc.)

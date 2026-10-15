@@ -4,6 +4,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { TRAIN } from './config.js';
 import { curved } from './curve.js';
 import * as T from './textures.js';
+import * as S from './scenetex.js';
 import { makeMagnet, makeJetpack } from './characters.js';
 
 const A = T.TRAIN_ATLAS;
@@ -97,16 +98,28 @@ export class Props {
   constructor() {
     const lam = (o) => curved(new THREE.MeshLambertMaterial(o));
     this.carGeo = trainCarGeometry();
-    this.trainMats = T.TRAIN_VARIANTS.map((v, i) => lam({ map: T.makeTrainTexture(v, i * 17 + 3) }));
+    // classic subway cars light their windows after dark; maglevs always glow
+    this.trainMats = T.TRAIN_VARIANTS.map((v, i) => {
+      const t = T.makeTrainTexture(v, i * 17 + 3);
+      return lam({ map: t.map, emissiveMap: t.glow, emissive: 0xffffff, emissiveIntensity: 0 });
+    });
+    this.futureMats = S.FUTURE_VARIANTS.map((v, i) => {
+      const t = S.makeFutureTrainTextures(v, i * 13 + 5);
+      return lam({ map: t.map, emissiveMap: t.glow, emissive: 0xffffff, emissiveIntensity: 1 });
+    });
     this.rampGeo = rampGeometry();
     this.rampMat = lam({ map: T.makeRampTexture() });
+    this.rampFutureMat = curved(new THREE.MeshBasicMaterial({ map: S.makeChevronTexture('#36e6ff') }));
     const [hb, hf] = barrierGeometry('hurdle');
     const [ob, of] = barrierGeometry('overhead');
     this.barrier = {
-      hurdle: { board: hb, frame: hf, mat: lam({ map: T.makeStripeTexture('#ffffff', '#e8343f', 7) }) },
-      overhead: { board: ob, frame: of, mat: lam({ map: T.makeStripeTexture('#ffd23f', '#1b1530', 6) }) },
+      hurdle: { board: hb, frame: hf, mat: lam({ map: T.makeStripeTexture('#ffffff', '#e8343f', 7) }),
+        futureMat: curved(new THREE.MeshBasicMaterial({ map: S.makeFutureStripeTexture('#ff3dbb', '#ff9ae0') })) },
+      overhead: { board: ob, frame: of, mat: lam({ map: T.makeStripeTexture('#ffd23f', '#1b1530', 6) }),
+        futureMat: curved(new THREE.MeshBasicMaterial({ map: S.makeFutureStripeTexture('#36e6ff', '#c6f6ff') })) },
     };
     this.frameMat = lam({ color: 0x5d6575 });
+    this.futureFrameMat = lam({ color: 0x2a2440, emissive: 0x2a1050 });
     this.glowTex = T.makeGlowTexture();
     this.headlightMat = curved(new THREE.MeshBasicMaterial({ map: this.glowTex, color: 0xfff1a8, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
     this.beamMat = curved(new THREE.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
@@ -127,10 +140,16 @@ export class Props {
     };
   }
 
-  train(variant, cars, moving) {
+  // 0 = daylight, 1 = full night: how brightly classic cars light their windows
+  setNight(n) {
+    for (const m of this.trainMats) m.emissiveIntensity = n * 0.95;
+  }
+
+  train(variant, cars, moving, future = false) {
     const g = new THREE.Group();
+    const mats = future ? this.futureMats : this.trainMats;
     for (let i = 0; i < cars; i++) {
-      const car = new THREE.Mesh(this.carGeo, this.trainMats[variant % this.trainMats.length]);
+      const car = new THREE.Mesh(this.carGeo, mats[variant % mats.length]);
       car.position.z = -i * (TRAIN.CAR + TRAIN.GAP);
       g.add(car);
       if (i > 0) { // coupling
@@ -157,14 +176,14 @@ export class Props {
     return g;
   }
 
-  ramp() {
-    return new THREE.Mesh(this.rampGeo, this.rampMat);
+  ramp(future = false) {
+    return new THREE.Mesh(this.rampGeo, future ? this.rampFutureMat : this.rampMat);
   }
 
-  barrierMesh(kind) {
+  barrierMesh(kind, future = false) {
     const b = this.barrier[kind];
     const g = new THREE.Group();
-    g.add(new THREE.Mesh(b.board, b.mat), new THREE.Mesh(b.frame, this.frameMat));
+    g.add(new THREE.Mesh(b.board, future ? b.futureMat : b.mat), new THREE.Mesh(b.frame, future ? this.futureFrameMat : this.frameMat));
     if (kind === 'overhead') {
       for (const s of [-1, 1]) {
         const l = new THREE.Mesh(this.lightGeo, this.warnMat);

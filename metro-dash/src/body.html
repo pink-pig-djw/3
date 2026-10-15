@@ -15,8 +15,15 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="9" width="20" height="6" rx="3" fill="#ff6fae"/><rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="#ffd23f"/><circle cx="6" cy="17.5" r="1.6" fill="#5ff6ff"/><circle cx="18" cy="17.5" r="1.6" fill="#5ff6ff"/></svg>
       <b id="board-count">3</b>
     </button>
+    <span id="zone-pill" class="zone-pill">1 · 晴空街区</span>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="banner" class="banner" aria-live="polite">
+      <span id="banner-stage" class="banner-stage">STAGE 2</span>
+      <span id="banner-name" class="banner-name">夕阳海港</span>
+      <span id="banner-en" class="banner-en">SUNSET HARBOR</span>
+    </div>
   </div>
+  <div id="flash" aria-hidden="true"></div>
 
   <section id="menu" class="screen menu" hidden>
     <div class="menu-top">
@@ -81,6 +88,14 @@
           <dt>超级跑鞋</dt><dd>跳得更高，能直接跳上车顶</dd>
           <dt>双倍积分</dt><dd>分数增长翻倍</dd>
         </dl>
+        <p class="zones-title">一路跑下去会经过五个站点，越往后越炫：</p>
+        <ol class="zones">
+          <li><b>晴空街区</b> 起点</li>
+          <li><b>夕阳海港</b> 550 米</li>
+          <li><b>霓虹夜城</b> 1300 米</li>
+          <li><b>赛博网格</b> 2150 米</li>
+          <li><b>星河轨道</b> 3100 米</li>
+        </ol>
       </div>
     </div>
   </section>
@@ -106,6 +121,7 @@
         <span>金币 <b id="over-coins">+0</b></span>
         <span>金币余额 <b id="over-bank">0</b></span>
       </div>
+      <p class="over-zone">到达 <b id="over-zone">第 1 站 · 晴空街区</b></p>
       <button id="btn-revive" class="btn-revive">继续奔跑</button>
       <button id="btn-retry" class="btn-play">再跑一次</button>
       <button id="btn-home" class="chip wide">回主页</button>

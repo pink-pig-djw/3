@@ -9,7 +9,9 @@ import {
 } from './config.js';
 import { curveUniforms } from './curve.js';
 import { loadSave, writeSave } from './storage.js';
-import { makeSkyTexture, makeBoardTexture } from './textures.js';
+import { makeBoardTexture } from './textures.js';
+import { THEMES } from './themes.js';
+import { Sky } from './sky.js';
 import { World } from './world.js';
 import { Props } from './props.js';
 import { Level } from './level.js';
@@ -40,12 +42,14 @@ class Game {
     this.renderer.setPixelRatio(this.ratio);
 
     this.scene = new THREE.Scene();
-    this.scene.background = makeSkyTexture();
     this.scene.fog = new THREE.Fog(0xcfeaf8, 80, AHEAD - 5);
-    this.scene.add(new THREE.HemisphereLight(0xe4f3ff, 0x8d7d68, 1.9));
-    const sun = new THREE.DirectionalLight(0xfff1dc, 2.3);
-    sun.position.set(-5, 12, 6);
-    this.scene.add(sun);
+    this.hemi = new THREE.HemisphereLight(0xe4f3ff, 0x8d7d68, 1.9);
+    this.scene.add(this.hemi);
+    this.sun = new THREE.DirectionalLight(0xfff1dc, 2.3);
+    this.sun.position.set(-5, 12, 6);
+    this.scene.add(this.sun);
+    this.sky = new Sky(this.scene);
+    this.zone = 0;
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 400);
 
     this.player = this.freshPlayer(0);
@@ -86,8 +90,13 @@ class Game {
     this.props = new Props();
     this.level = new Level(this.scene, this.props);
     this.fx = new Particles(this.scene);
-    this.ui.setLoading(0.2);
+    this.ui.setLoading(0.2, '正在搭建五个站点…');
     await new Promise((r) => setTimeout(r, 30));
+    for (let i = 0; i < THEMES.length; i++) {
+      this.world.buildTheme(i);
+      this.ui.setLoading(0.2 + 0.08 * (i + 1));
+      await new Promise((r) => setTimeout(r, 0));
+    }
     this.outfits = {};
     this.char = await this.makeRunner(this.save.outfits.includes(this.save.outfit) ? this.save.outfit : 'hoodie');
     this.ui.setLoading(0.6, '巡站员正在戴帽子…');
@@ -99,11 +108,17 @@ class Game {
     this.ui.setLoading(0.85, '列车进站…');
     await new Promise((r) => setTimeout(r, 30));
     this.toMenu();
+    // compile every zone's shaders now so later zones do not hitch
+    this.world.setAllVisible(true);
     this.renderer.compile(this.scene, this.camera);
+    this.world.setAllVisible(false);
+    this.world.reset(0);
+    this.world.update(0, AHEAD, BEHIND);
     this.ui.setLoading(1, '出发！');
     this.ui.hideLoading();
     this.last = performance.now();
     this.renderer.setAnimationLoop((t) => this.frame(t));
+    this.ui.screen('menu');
   }
 
   async makeRunner(id) {
@@ -228,6 +243,9 @@ class Game {
     this.placeMenuCharacter();
     this.guard.root.visible = false;
     curveUniforms.uCurveX.value = 0;
+    this.applyTheme(THEMES[0], THEMES[0], 1);
+    this.zone = 0;
+    this.sound.setZone(0);
     this.ui.clearPowers();
     this.ui.danger(false);
     this.ui.menuStats();
@@ -266,6 +284,9 @@ class Game {
     this.introT = 0;
     this.newBest = false;
     this.diff = 0;
+    this.zone = 0;
+    this.maxZone = 0;
+    this.sound.setZone(0);
     c.root.position.set(0, 0, 0);
     c.body.rotation.set(0, 0, 0);
     c.play('run', { fade: 0.25 });
@@ -276,11 +297,21 @@ class Game {
     this.guard.setFace('angry', 1);
     this.guard.resetSprings();
     this.ui.clearPowers();
+    this.ui.zonePill(0, THEMES[0]);
     this.ui.screen('hud');
     this.ui.toast('快跑！', 'go');
     this.sound.whistle();
     this.sound.startMusic();
     this.state = 'play';
+  }
+
+  // Jump straight to a distance (used by the automated tests).
+  warpTo(dist) {
+    const p = this.player;
+    p.z = -dist; p.x = laneX(1); p.lane = 1; p.y = 0; p.vy = 0; p.grounded = true;
+    this.world.reset(p.z);
+    this.level.reset(p.z);
+    this.distance = dist;
   }
 
   pause() {
@@ -335,6 +366,7 @@ class Game {
     $('over-best').hidden = !this.newBest;
     $('over-best-val').textContent = s.best.toLocaleString('en-US');
     $('over-coins').textContent = `+${this.runCoins.toLocaleString('en-US')}`;
+    $('over-zone').textContent = `第 ${this.zone + 1} 站 · ${THEMES[this.zone].name}`;
     $('over-bank').textContent = s.coins.toLocaleString('en-US');
     const cost = REVIVE_COST * 2 ** this.revives;
     const rb = $('btn-revive');
@@ -479,12 +511,79 @@ class Game {
     this.renderer.render(this.scene, this.camera);
   }
 
+  updateTheme(dt) {
+    const p = this.player;
+    const { a, b, t } = this.world.themeBlend(p.z);
+    const k = smooth(t);
+    const A = THEMES[a], B = THEMES[b];
+    this.applyTheme(A, B, k);
+    curveUniforms.uCurveX.value = Math.sin(this.distance / 230) * lerp(A.sway, B.sway, k);
+    const zone = k >= 0.5 ? b : a;
+    if (zone !== this.zone) {
+      this.zone = zone;
+      this.sound.setZone(zone);
+      this.ui.zonePill(zone, THEMES[zone]);
+    }
+    for (const g of this.world.gates) {
+      if (!g.announced && p.z < g.z) {
+        g.announced = true;
+        this.maxZone = Math.max(this.maxZone, g.to);
+        this.ui.banner(g.to, THEMES[g.to]);
+        this.ui.flash();
+        this.sound.zone();
+        this.camShake = Math.max(this.camShake, 0.15);
+        this.fovKick = 8;
+      }
+    }
+    this.ambient(THEMES[zone].particles, dt);
+  }
+
+  applyTheme(A, B, k) {
+    this.sky.apply(A, B, k, this.time, this.camera);
+    const f = this.scene.fog;
+    f.color.copy(A.fog.color).lerp(B.fog.color, k);
+    f.near = lerp(A.fog.near, B.fog.near, k);
+    f.far = lerp(A.fog.far, B.fog.far, k);
+    this.hemi.color.copy(A.hemi.sky).lerp(B.hemi.sky, k);
+    this.hemi.groundColor.copy(A.hemi.ground).lerp(B.hemi.ground, k);
+    this.hemi.intensity = lerp(A.hemi.i, B.hemi.i, k);
+    this.sun.color.copy(A.sun.color).lerp(B.sun.color, k);
+    this.sun.intensity = lerp(A.sun.i, B.sun.i, k);
+    this.renderer.setClearColor(f.color);
+    this.props.setNight(lerp(A.night, B.night, k));
+  }
+
+  // zone-specific ambient particles around and ahead of the runner
+  ambient(kind, dt) {
+    if (!kind) return;
+    const p = this.player;
+    const rate = { motes: 6, rain: 70, data: 22, stardust: 40 }[kind];
+    this.ambientAcc = (this.ambientAcc || 0) + rate * dt;
+    while (this.ambientAcc >= 1) {
+      this.ambientAcc -= 1;
+      const x = p.x + (Math.random() - 0.5) * 22;
+      const z = p.z - 6 - Math.random() * 40;
+      if (kind === 'motes') {
+        this.fx.emit(x, 1 + Math.random() * 6, z, { n: 1, color: 0xffd08a, speed: 0.4, up: 0.2, life: 2.5, size: 0.35, gravity: 0 });
+      } else if (kind === 'rain') {
+        const fx = this.fx;
+        fx.emit(x, 6 + Math.random() * 4, z, { n: 1, color: 0x9fc8ff, speed: 0.1, up: 0, life: 0.5, size: 0.18, gravity: 60, vz: 2 });
+      } else if (kind === 'data') {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        this.fx.emit(side * (4.5 + Math.random() * 14), 0.2, z, { n: 1, color: Math.random() < 0.5 ? 0x2ef2ff : 0xff3dbb, speed: 0.2, up: 2.5, life: 1.6, size: 0.4, gravity: -2 });
+      } else if (kind === 'stardust') {
+        this.fx.emit(x + (Math.random() - 0.5) * 10, Math.random() * 9 - 1, p.z - 30 - Math.random() * 30, { n: 1, color: Math.random() < 0.3 ? 0xff9ae0 : 0xcfe8ff, speed: 0.1, up: 0, life: 1.1, size: 0.3, gravity: 0, vz: this.speed * 1.4 + 20 });
+      }
+    }
+  }
+
   updateMenu(dt) {
     const c = this.char;
     const a = this.time * 0.25;
     this.camera.position.set(Math.sin(a) * 0.9 + 0.5, 1.3, -3.9 + Math.cos(a) * 0.25);
     this.camera.lookAt(0, 0.95, 0);
-    this.world.update(0, AHEAD, BEHIND);
+    this.world.update(0, AHEAD, BEHIND, this.time, dt);
+    this.applyTheme(THEMES[0], THEMES[0], 1);
     c.root.position.set(0, 0, 0);
   }
 
@@ -558,8 +657,8 @@ class Game {
 
     // level, scenery
     this.level.update(dt, g, this.time);
-    this.world.update(p.z, AHEAD, BEHIND);
-    curveUniforms.uCurveX.value = Math.sin(this.distance / 230) * 0.0016;
+    this.world.update(p.z, AHEAD, BEHIND, this.time, dt);
+    this.updateTheme(dt);
 
     // score
     const mult = p.x2 > 0 ? 2 : 1;
@@ -770,6 +869,12 @@ class Game {
   updateCamera(dt) {
     const p = this.player;
     const portrait = this.camera.aspect < 1;
+    this.fovKick = Math.max(0, (this.fovKick || 0) - dt * 6);
+    const fov = this.baseFov + (this.speed - SPEED.START) * 0.32 + this.fovKick + (p.jet > 0 ? 4 : 0);
+    if (Math.abs(this.camera.fov - fov) > 0.05) {
+      this.camera.fov = damp(this.camera.fov, fov, 3, dt);
+      this.camera.updateProjectionMatrix();
+    }
     const dist = portrait ? 7.0 : 6.4;
     const hy = p.jet > 0 ? p.y + 2.6 : Math.max(0, p.y) * 0.72 + 3.55;
     if (this.camY === undefined) this.camY = hy;
@@ -799,7 +904,8 @@ class Game {
     const w = window.innerWidth, h = window.innerHeight;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
-    this.camera.fov = w / h < 0.8 ? 74 : w / h < 1.2 ? 66 : 58;
+    this.baseFov = w / h < 0.8 ? 74 : w / h < 1.2 ? 66 : 58;
+    this.camera.fov = this.baseFov;
     this.camera.updateProjectionMatrix();
   }
 

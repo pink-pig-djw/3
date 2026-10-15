@@ -98,9 +98,13 @@ export const TRAIN_VARIANTS = [
   { body: '#e2463f', stripe: '#fff3d6', stripe2: '#7a1d1a', door: '#cf3d37' },
 ];
 
+// Returns { map, glow }: glow lights the windows and lamps after dark.
 export function makeTrainTexture(variant, seed) {
   const rand = rng(seed);
   const [c, g] = canvas(TRAIN_ATLAS.W, TRAIN_ATLAS.H);
+  const [gc, gg] = canvas(TRAIN_ATLAS.W, TRAIN_ATLAS.H);
+  gg.fillStyle = '#000'; gg.fillRect(0, 0, TRAIN_ATLAS.W, TRAIN_ATLAS.H);
+  gg.fillStyle = '#ffe2a6';
   const v = variant;
   // ---- side ----
   g.fillStyle = v.body; g.fillRect(0, 0, 1024, 256);
@@ -123,6 +127,7 @@ export function makeTrainTexture(variant, seed) {
     const wg = g.createLinearGradient(x, winY, x + 92, winY + winH);
     wg.addColorStop(0, '#2b3f6b'); wg.addColorStop(0.55, '#13203d'); wg.addColorStop(1, '#22365f');
     g.fillStyle = wg; g.fill();
+    gg.fillRect(x + 4, winY + 4, 84, winH - 8);
     g.fillStyle = 'rgba(255,255,255,0.18)';
     g.beginPath(); g.moveTo(x + 10, winY + winH - 6); g.lineTo(x + 40, winY + 6); g.lineTo(x + 56, winY + 6); g.lineTo(x + 26, winY + winH - 6); g.fill();
   }
@@ -134,6 +139,7 @@ export function makeTrainTexture(variant, seed) {
     for (const s of [-1, 1]) {
       roundRect(g, d + s * 35 - 22, 52, 44, 92, 8);
       g.fillStyle = '#17264a'; g.fill();
+      gg.fillRect(d + s * 35 - 18, 56, 36, 84);
     }
     g.fillStyle = v.stripe; g.fillRect(d - 70, 150, 140, 18);
   }
@@ -172,6 +178,7 @@ export function makeTrainTexture(variant, seed) {
   for (const s of [-1, 1]) {
     g.fillStyle = '#20232b'; g.beginPath(); g.arc(fx + 128 + s * 82, fy + 206, 22, 0, Math.PI * 2); g.fill();
     g.fillStyle = '#fff6c9'; g.beginPath(); g.arc(fx + 128 + s * 82, fy + 206, 15, 0, Math.PI * 2); g.fill();
+    gg.beginPath(); gg.arc(fx + 128 + s * 82, fy + 206, 17, 0, Math.PI * 2); gg.fill();
   }
   g.fillStyle = '#2a2d36'; g.fillRect(fx, fy + 232, 256, 24);
   g.fillStyle = '#ffd23f';
@@ -189,7 +196,8 @@ export function makeTrainTexture(variant, seed) {
   g.fillStyle = '#2b2d35'; g.fillRect(dx, dy, dw, dh);
   const [lx, ly, lw, lh] = TRAIN_ATLAS.light;
   g.fillStyle = '#fff9d6'; g.fillRect(lx, ly, lw, lh);
-  return toTexture(c);
+  gg.fillRect(fx + 48, fy + 18, 160, 30); // destination sign
+  return { map: toTexture(c), glow: toTexture(gc) };
 }
 
 // ---------- track bed (one lane wide, tiles along z) ----------

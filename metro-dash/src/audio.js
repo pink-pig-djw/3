@@ -1,5 +1,20 @@
 // Synthesised sound: every effect and the background beat are generated with
 // WebAudio at runtime, so the game ships no audio files.
+// Grooves per zone (MIDI note numbers). Chords change every two bars.
+const ZONES = [
+  { bpm: 98, swing: 1.14, roots: [45, 41, 48, 43], chords: [[57, 60, 64], [53, 57, 60], [55, 60, 64], [55, 59, 62]],
+    stabs: true, hook: { 0: 76, 3: 74, 6: 72, 8: 69, 11: 72, 14: 74 }, hookShift: [0, -4, 0, -2] },
+  { bpm: 92, swing: 1.18, roots: [41, 40, 38, 36], chords: [[57, 60, 64], [55, 59, 62], [53, 57, 60], [52, 55, 59]],
+    pad: true, stabs: true, hook: { 0: 72, 2: 74, 4: 76, 7: 79, 10: 76, 12: 74 }, hookShift: [0, -1, -3, -5] },
+  { bpm: 108, swing: 1.08, roots: [45, 41, 48, 43], chords: [[57, 60, 64], [53, 57, 60], [55, 60, 64], [55, 59, 62]],
+    stabs: true, arp: true, hats16: true, hook: { 0: 81, 3: 79, 6: 76, 8: 74, 11: 76, 14: 79 }, hookShift: [0, -4, 0, -2] },
+  { bpm: 118, swing: 1.0, roots: [38, 46, 41, 48], chords: [[62, 65, 69], [58, 62, 65], [57, 60, 65], [55, 60, 64]],
+    sawBass: true, arp: true, arpUp: true, pad: true, hats16: true, hook: { 0: 74, 4: 77, 8: 81, 12: 79 }, hookShift: [0, -4, -1, -2] },
+  { bpm: 124, swing: 1.0, roots: [40, 36, 43, 38], chords: [[64, 67, 71], [60, 64, 67], [62, 67, 71], [62, 66, 69]],
+    sawBass: true, arp: true, arpUp: true, pad: true, shimmer: true, fourFloor: true, hats16: true,
+    hook: { 0: 83, 3: 79, 6: 76, 8: 79, 11: 83, 14: 86 }, hookShift: [0, -4, -1, -2] },
+];
+
 export class Sound {
   constructor() {
     this.ctx = null;
@@ -117,11 +132,20 @@ export class Sound {
     }
   }
 
-  // ---------- music: a 2-bar-per-chord street beat in A minor, 98 BPM ----------
+  // ---------- music ----------
+  // One groove per zone; each later zone is faster and adds layers.
+  setZone(z) { this.pendingZone = z; if (!this.musicOn) this.zoneIdx = z; }
+
+  zone() { // stinger when entering a new zone
+    this.hiss(0.9, { vol: 0.25, freq: 400, sweep: 5000, q: 1.2 });
+    [0, 4, 7, 12].forEach((n, i) => this.tone(523 * Math.pow(2, n / 12), 0.5, { type: 'triangle', vol: 0.1, delay: 0.25 + i * 0.05 }));
+  }
+
   startMusic() {
     if (!this.ctx || this.musicOn) return;
     this.musicOn = true;
     this.step = 0;
+    this.zoneIdx = this.pendingZone ?? this.zoneIdx ?? 0;
     this.nextTime = this.ctx.currentTime + 0.1;
     this.musicBus.gain.cancelScheduledValues(this.ctx.currentTime);
     this.musicBus.gain.setTargetAtTime(0.28, this.ctx.currentTime, 0.2);
@@ -137,51 +161,62 @@ export class Sound {
   }
 
   schedule() {
-    const spb = 60 / 98 / 4; // 16th notes
     while (this.nextTime < this.ctx.currentTime + 0.12) {
-      this.playStep(this.step, this.nextTime);
-      // light swing on off-beats
-      this.nextTime += spb * (this.step % 2 ? 0.86 : 1.14);
+      if (this.step % 16 === 0 && this.pendingZone !== undefined && this.pendingZone !== this.zoneIdx) {
+        this.zoneIdx = this.pendingZone;
+      }
+      const z = ZONES[this.zoneIdx] || ZONES[0];
+      const spb = 60 / z.bpm / 4; // 16th notes
+      this.playStep(this.step, this.nextTime, z);
+      this.nextTime += spb * (this.step % 2 ? 2 - z.swing : z.swing);
       this.step = (this.step + 1) % 128;
     }
   }
 
-  playStep(s, t) {
-    const bus = this.musicBus;
+  playStep(s, t, z) {
     const beat = s % 16;
     const bar = Math.floor(s / 16);
-    // chords: Am F C G, two bars each
-    const roots = [45, 41, 48, 43];
-    const chordTones = [[57, 60, 64], [53, 57, 60], [55, 60, 64], [55, 59, 62]];
     const ci = Math.floor(bar / 2) % 4;
     const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
-    const kick = [0, 7, 10].includes(beat) || (bar % 2 === 1 && beat === 14);
-    const snare = beat === 4 || beat === 12;
+    const chord = z.chords[ci];
+    // drums
+    const kick = z.fourFloor ? beat % 4 === 0 : ([0, 7, 10].includes(beat) || (bar % 2 === 1 && beat === 14));
     if (kick) this.drum(t, 'kick');
-    if (snare) this.drum(t, 'snare');
-    if (beat % 2 === 0 || beat === 15) this.drum(t, beat % 4 === 2 ? 'openhat' : 'hat');
-    // bass line
-    const bassPattern = { 0: 0, 3: 0, 7: 12, 10: 0, 13: 7 };
-    if (beat in bassPattern) this.note(midi(roots[ci] - 12 + bassPattern[beat]), t, 0.22, 'sawtooth', 0.16, 420);
-    // offbeat chord stabs
-    if (beat === 2 || beat === 6 || beat === 11) {
-      for (const n of chordTones[ci]) this.note(midi(n), t, 0.12, 'square', 0.035, 1800);
+    if (beat === 4 || beat === 12) this.drum(t, 'snare');
+    if (z.hats16 || beat % 2 === 0 || beat === 15) this.drum(t, beat % 4 === 2 ? 'openhat' : 'hat');
+    // bass
+    if (z.sawBass) {
+      if (beat % 2 === 0) this.note(midi(z.roots[ci] - 12 + (beat % 4 === 2 ? 12 : 0)), t, 0.16, 'sawtooth', 0.15, 700);
+    } else {
+      const bp = { 0: 0, 3: 0, 7: 12, 10: 0, 13: 7 };
+      if (beat in bp) this.note(midi(z.roots[ci] - 12 + bp[beat]), t, 0.22, 'sawtooth', 0.16, 420);
     }
-    // little lead hook every other pass
-    if (Math.floor(bar / 8) % 2 === 1) {
-      const hook = { 0: 76, 3: 74, 6: 72, 8: 69, 11: 72, 14: 74 };
-      if (beat in hook) this.note(midi(hook[beat] - (ci === 1 ? 4 : ci === 3 ? 2 : 0)), t, 0.18, 'triangle', 0.07, 3000);
+    // chord stabs
+    if (z.stabs && (beat === 2 || beat === 6 || beat === 11)) for (const n of chord) this.note(midi(n), t, 0.12, 'square', 0.033, 1800);
+    // pad
+    if (z.pad && beat === 0 && bar % 2 === 0) for (const n of chord) this.note(midi(n), t, 60 / z.bpm * 8, 'sawtooth', 0.018, 900, 0.6);
+    // arpeggio
+    if (z.arp) {
+      const seq = [0, 1, 2, 1, 2, 0, 1, 2];
+      const n = chord[seq[beat % 8]] + 12 + (beat >= 8 && z.arpUp ? 12 : 0);
+      this.note(midi(n), t, 0.09, 'square', 0.03, 2600);
+    }
+    // shimmer
+    if (z.shimmer && beat % 4 === 3 && Math.random() < 0.6) this.note(midi(chord[Math.floor(Math.random() * 3)] + 24), t, 0.4, 'sine', 0.035, 6000);
+    // hook every other 8 bars
+    if (z.hook && Math.floor(bar / 8) % 2 === 1 && beat in z.hook) {
+      this.note(midi(z.hook[beat] + z.hookShift[ci]), t, 0.18, 'triangle', 0.07, 3000);
     }
   }
 
-  note(freq, t, dur, type, vol, cutoff) {
+  note(freq, t, dur, type, vol, cutoff, attack = 0.01) {
     const o = this.ctx.createOscillator();
     const f = this.ctx.createBiquadFilter();
     const g = this.ctx.createGain();
     o.type = type; o.frequency.value = freq;
     f.type = 'lowpass'; f.frequency.value = cutoff;
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(vol, t + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(f).connect(g).connect(this.musicBus);
     o.start(t); o.stop(t + dur + 0.02);

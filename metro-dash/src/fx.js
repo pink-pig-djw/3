@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { BEND, curveUniforms } from './curve.js';
 import { makeGlowTexture } from './textures.js';
 
-const MAX = 420;
+const MAX = 900;
 
 export class Particles {
   constructor(scene) {

@@ -2,6 +2,9 @@
 // plus the geometry queries the physics needs.
 import * as THREE from 'three';
 import { TRAIN, LANE_W, laneX, AHEAD, BEHIND, JET_Y } from './config.js';
+import { THEMES, zoneOfZ } from './themes.js';
+
+const futureAt = (z) => THEMES[zoneOfZ(z)].future;
 
 const TRAIN_LEN = (cars) => cars * TRAIN.CAR + (cars - 1) * TRAIN.GAP;
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -55,17 +58,17 @@ export class Level {
     }
   }
 
-  addTrain(lane, zFront, cars, { ramp = false, moving = 0, variant = rint(0, 3) } = {}) {
+  addTrain(lane, zFront, cars, { ramp = false, moving = 0, variant = rint(0, 11) } = {}) {
     let zF = zFront;
     if (ramp) {
-      const mesh = this.props.ramp();
+      const mesh = this.props.ramp(futureAt(zF));
       mesh.position.set(laneX(lane), 0, zF);
       this.scene.add(mesh);
       this.obstacles.push({ kind: 'ramp', lane, x: laneX(lane), zF, zB: zF - TRAIN.RAMP, y0: 0, y1: TRAIN.H, u: 0, mesh });
       zF -= TRAIN.RAMP;
     }
     const len = TRAIN_LEN(cars);
-    const mesh = this.props.train(variant, cars, moving > 0);
+    const mesh = this.props.train(variant, cars, moving > 0, futureAt(zF));
     mesh.position.set(laneX(lane), 0, zF);
     this.scene.add(mesh);
     const o = { kind: 'train', lane, x: laneX(lane), zF, zB: zF - len, y0: 0, y1: TRAIN.H, u: moving, active: false, mesh };
@@ -74,7 +77,7 @@ export class Level {
   }
 
   addBarrier(lane, z, kind) {
-    const mesh = this.props.barrierMesh(kind);
+    const mesh = this.props.barrierMesh(kind, futureAt(z));
     mesh.position.set(laneX(lane), 0, z);
     this.scene.add(mesh);
     const [y0, y1] = kind === 'hurdle' ? [0, 1.0] : [1.22, 2.35];

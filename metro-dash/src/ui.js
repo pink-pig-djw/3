@@ -92,6 +92,27 @@ export class UI {
 
   danger(on) { $('danger').classList.toggle('on', on); }
 
+  banner(index, theme) {
+    const b = $('banner');
+    $('banner-stage').textContent = `STAGE ${index + 1}`;
+    $('banner-name').textContent = theme.name;
+    $('banner-en').textContent = theme.en;
+    b.dataset.zone = theme.id;
+    b.classList.remove('show');
+    void b.offsetWidth; // restart the animation
+    b.classList.add('show');
+    $('zone-pill').textContent = `${index + 1} · ${theme.name}`;
+  }
+
+  zonePill(index, theme) { $('zone-pill').textContent = `${index + 1} · ${theme.name}`; }
+
+  flash() {
+    const f = $('flash');
+    f.classList.remove('on');
+    void f.offsetWidth;
+    f.classList.add('on');
+  }
+
   renderShop() {
     const s = this.g.save;
     $('shop-bank').textContent = s.coins.toLocaleString('en-US');

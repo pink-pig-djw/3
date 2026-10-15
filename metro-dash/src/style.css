@@ -125,6 +125,51 @@ button:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
 .toast.magnet { color: #ff4d5e; } .toast.jetpack { color: #ffb02e; }
 .toast.sneakers { color: #3ee07a; } .toast.x2 { color: #c38bff; }
 
+.zone-pill {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 24px);
+  left: calc(env(safe-area-inset-left, 0px) + 70px);
+  padding: 5px 10px; border-radius: 999px; border: 3px solid var(--ink); background: var(--paper);
+  font-weight: 900; font-size: 13px; white-space: nowrap;
+}
+.banner {
+  position: absolute; left: 0; right: 0; top: 34%;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  opacity: 0; pointer-events: none; transform: translateX(-60%) skewX(-12deg);
+}
+.banner.show { animation: banner 2.6s cubic-bezier(.2,.9,.2,1) forwards; }
+.banner-stage {
+  font-family: var(--display); font-size: 18px; letter-spacing: 0.3em; color: #fff;
+  padding: 3px 12px; background: var(--ink); border-radius: 6px;
+}
+.banner-name {
+  font-family: var(--display-cn); font-size: clamp(48px, 15vw, 96px); line-height: 1; color: var(--zone, var(--tangerine));
+  -webkit-text-stroke: 10px var(--ink); paint-order: stroke fill; text-shadow: 0 7px 0 var(--ink), 0 0 30px var(--zone, var(--tangerine));
+}
+.banner-en {
+  font-family: var(--display); font-size: clamp(14px, 4vw, 22px); letter-spacing: 0.25em; color: #fff;
+  -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill;
+}
+.banner[data-zone="sunset"] { --zone: #ffb35c; }
+.banner[data-zone="neon"] { --zone: #ff3dbb; }
+.banner[data-zone="cyber"] { --zone: #36e6ff; }
+.banner[data-zone="galaxy"] { --zone: #c48bff; }
+@keyframes banner {
+  0% { opacity: 0; transform: translateX(-60%) skewX(-12deg); }
+  14% { opacity: 1; transform: translateX(4%) skewX(-12deg); }
+  22% { transform: translateX(0) skewX(-6deg); }
+  78% { opacity: 1; transform: translateX(2%) skewX(-6deg); }
+  100% { opacity: 0; transform: translateX(70%) skewX(-12deg); }
+}
+#flash { position: absolute; inset: 0; pointer-events: none; background: #fff; opacity: 0; }
+#flash.on { animation: flash 0.7s ease-out; }
+@keyframes flash { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+.over-zone { margin: 0; font-weight: 700; color: #3f3552; }
+.over-zone b { color: var(--tangerine); }
+.zones-title { margin: 6px 0 4px !important; }
+.zones { margin: 0; padding-left: 1.4em; color: #3f3552; }
+.zones b { color: var(--ink); margin-right: 6px; }
+
 #danger {
   position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.3s;
   box-shadow: inset 0 0 90px 30px rgba(255, 40, 60, 0.55);
@@ -287,4 +332,5 @@ button:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
 @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  .banner.show { opacity: 1; transform: none; }
 }
