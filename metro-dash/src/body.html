@@ -1,0 +1,120 @@
+<div id="app">
+  <canvas id="game" aria-label="地铁疾跑游戏画面"></canvas>
+  <div id="danger" aria-hidden="true"></div>
+
+  <div id="hud" hidden>
+    <button id="btn-pause" class="round-btn" aria-label="暂停">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
+    </button>
+    <div class="hud-right">
+      <div class="score-row"><span id="mult" class="mult">×1</span><span id="score" class="score">0</span></div>
+      <div class="coin-row"><i class="coin-ico" aria-hidden="true"></i><span id="coins">0</span></div>
+      <div id="powers" class="powers"></div>
+    </div>
+    <button id="btn-board" class="board-btn" aria-label="使用悬浮滑板">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="9" width="20" height="6" rx="3" fill="#ff6fae"/><rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="#ffd23f"/><circle cx="6" cy="17.5" r="1.6" fill="#5ff6ff"/><circle cx="18" cy="17.5" r="1.6" fill="#5ff6ff"/></svg>
+      <b id="board-count">3</b>
+    </button>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <section id="menu" class="screen menu" hidden>
+    <div class="menu-top">
+      <header class="logo">
+        <span class="logo-cn">地铁疾跑</span>
+        <span class="logo-en">METRO DASH</span>
+      </header>
+      <div class="menu-stats">
+        <span>最高分 <b id="best">0</b></span>
+        <span><i class="coin-ico" aria-hidden="true"></i> <b id="bank">0</b></span>
+      </div>
+    </div>
+    <div class="menu-bottom">
+      <button id="btn-play" class="btn-play">开始奔跑</button>
+      <div class="menu-row">
+        <button id="btn-shop" class="chip">商店</button>
+        <button id="btn-help" class="chip">玩法</button>
+        <button id="btn-sound" class="chip" aria-pressed="true">声音：开</button>
+      </div>
+      <p class="hint">滑动屏幕或方向键操作 · 双击屏幕或空格键启用滑板</p>
+    </div>
+  </section>
+
+  <section id="shop" class="sheet" hidden>
+    <div class="panel" role="dialog" aria-labelledby="shop-title">
+      <header class="panel-head">
+        <h2 id="shop-title">商店</h2>
+        <span class="bank"><i class="coin-ico" aria-hidden="true"></i><b id="shop-bank">0</b></span>
+        <button id="shop-close" class="round-btn small" aria-label="关闭商店">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke-width="3" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+      <ul id="shop-list" class="shop-list"></ul>
+    </div>
+  </section>
+
+  <section id="help" class="sheet" hidden>
+    <div class="panel" role="dialog" aria-labelledby="help-title">
+      <header class="panel-head">
+        <h2 id="help-title">玩法</h2>
+        <button id="help-close" class="round-btn small" aria-label="关闭玩法说明">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke-width="3" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+      <div class="help-body">
+        <p>七海在列车轨道上涂鸦被巡站员发现了，快跑！</p>
+        <dl class="keys">
+          <dt>左右滑 / ← →</dt><dd>换轨道</dd>
+          <dt>上滑 / ↑</dt><dd>跳跃，跳过低栏</dd>
+          <dt>下滑 / ↓</dt><dd>翻滚，钻过高栏；空中下滑会急速落地</dd>
+          <dt>双击 / 空格</dt><dd>启用悬浮滑板，30 秒内撞车不会出局</dd>
+        </dl>
+        <ul class="rules">
+          <li>正面撞上列车或栏杆就出局。</li>
+          <li>换道时擦到列车侧面会踉跄一下，巡站员会追上来；短时间内再踉跄一次就会被抓住。</li>
+          <li>从黄黑斜坡跑上车顶，可以在列车顶上一路飞奔。</li>
+          <li>迎面开来、亮着头灯的列车会移动，提前躲开。</li>
+        </ul>
+        <dl class="keys items">
+          <dt>金币磁铁</dt><dd>自动吸附附近所有金币</dd>
+          <dt>喷气背包</dt><dd>飞上高空收集天上的金币</dd>
+          <dt>超级跑鞋</dt><dd>跳得更高，能直接跳上车顶</dd>
+          <dt>双倍积分</dt><dd>分数增长翻倍</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section id="pause" class="sheet center" hidden>
+    <div class="panel narrow" role="dialog" aria-labelledby="pause-title">
+      <h2 id="pause-title">暂停</h2>
+      <button id="btn-resume" class="btn-play">继续</button>
+      <button id="btn-quit" class="chip wide">回主页</button>
+    </div>
+  </section>
+
+  <section id="over" class="sheet center" hidden>
+    <div class="panel narrow" role="dialog" aria-labelledby="over-title">
+      <h2 id="over-title" class="over-title">撞上了！</h2>
+      <div class="over-score">
+        <span class="label">本局分数</span>
+        <b id="over-score">0</b>
+        <span id="over-best" class="badge" hidden>新纪录</span>
+      </div>
+      <div class="over-stats">
+        <span>最高分 <b id="over-best-val">0</b></span>
+        <span>金币 <b id="over-coins">+0</b></span>
+        <span>金币余额 <b id="over-bank">0</b></span>
+      </div>
+      <button id="btn-revive" class="btn-revive">继续奔跑</button>
+      <button id="btn-retry" class="btn-play">再跑一次</button>
+      <button id="btn-home" class="chip wide">回主页</button>
+    </div>
+  </section>
+
+  <div id="loading" class="loading">
+    <div class="logo small"><span class="logo-cn">地铁疾跑</span><span class="logo-en">METRO DASH</span></div>
+    <div class="load-track"><i id="load-bar"></i></div>
+    <p id="load-text">正在准备…</p>
+  </div>
+</div>

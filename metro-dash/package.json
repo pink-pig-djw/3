@@ -1,0 +1,20 @@
+{
+  "name": "metro-dash",
+  "version": "1.0.0",
+  "description": "地铁疾跑 — a 3D endless runner for the browser (three.js + VRM)",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "anims": "node tools/convert-anims.mjs ../../mixamoLibrary",
+    "test": "node tools/smoke-test.cjs"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@pixiv/three-vrm": "^3.5.5",
+    "three": "^0.170.0"
+  },
+  "private": true,
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "playwright-core": "^1.48.2"
+  }
+}
